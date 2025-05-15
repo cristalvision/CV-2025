@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CV_2025</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\Home\CoreFunctions.js" />
+    <Content Remove="wwwroot\Home\Home.cs" />
+    <Content Remove="wwwroot\Home\Home.css" />
+    <Content Remove="wwwroot\Home\Home.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="wwwroot\CristalVision\Database\Access.cs" />
+    <Compile Include="wwwroot\CristalVision\Database\Database.cs" />
+    <Compile Include="wwwroot\CristalVision\Database\MySQL.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Bitmap.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Characters.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Equations.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Page.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Score.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Shapes.cs" />
+    <Compile Include="wwwroot\CristalVision\Vision\Tables.cs" />
+    <Compile Include="wwwroot\Home\Home.cs" />
+    <Compile Include="wwwroot\Image\Image.cs" />
+    <Compile Include="wwwroot\Process\Process.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\Home\CoreFunctions.js" />
+    <None Include="wwwroot\Home\Home.css" />
+    <None Include="wwwroot\Home\Home.js" />
+    <None Include="wwwroot\Image\Image.css" />
+    <None Include="wwwroot\Image\Image.js" />
+    <None Include="wwwroot\Process\Process.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySql.Data" Version="9.3.0" />
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+    <PackageReference Include="System.Data.OleDb" Version="9.0.5" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.5" />
+    <PackageReference Include="System.Text.Json" Version="9.0.5" />
+  </ItemGroup>
+
+</Project>
