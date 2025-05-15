@@ -1,0 +1,69 @@
+﻿body {
+    margin: unset;
+}
+
+.hideElement {
+    display: none;
+}
+
+ribbon {
+    display: block;
+    height: 45px;
+    background-color: #24406acf;
+    border: 2px solid darkblue;
+    border-bottom: none;
+}
+
+ribbon button {
+    height: inherit;
+    margin-left: 47%;
+    font-size: large;
+    background: #8c8db182;
+    color: white;
+    border: 2px solid darkblue;
+    border-top: none;
+    border-bottom: none;
+    font-family: math;
+}
+
+#FrameLine {
+    height: 2px;
+    background-color: darkblue;
+}
+
+#Frame {
+    height: calc(100vh - 51px);
+    background-image: linear-gradient(140deg, #7e9bad 35%, #7a91a3 50%, #617a91 70%);
+    border: 2px solid darkblue;
+    border-top: none;
+    overflow: hidden;
+    text-align: center;
+}
+
+#Frame input {
+    display: none;
+}
+
+#Frame label[for="UploadBtn"] {
+    position: absolute;
+    top: 48%;
+    left: 47%;
+    border-radius: 5px;
+    background: black;
+    color: white;
+    padding: 1em;
+    font-size: larger;
+    cursor: pointer;
+    user-select: none;
+}
+
+#Progress {
+    position: absolute;
+    top: 50%;
+    left: calc(50% - 250px);
+    width: 500px;
+}
+
+#Progress progress {
+    width: inherit;
+}
