@@ -1,0 +1,4 @@
+Optical Character Recognistion Library
+
+Created by Dorin Vieru
+March 1st 2025 - May 15 2025
