@@ -25,8 +25,8 @@ var Process = {
         Image.ZoomPan[0] = 3;
         Image.ZoomPan[1] = 575;
         Image.ZoomPan[2] = 101;
-        //Input.target.style.transform = 'scale(5, 5) translate(645px, 362px)';//Licenta 2009
-        Input.target.style.transform = 'scale(5, 5) translate(210px, 360px)';//Eminescu
+        Input.target.style.transform = 'scale(5, 5) translate(774px, 434px)';//Licenta 2009
+        //Input.target.style.transform = 'scale(5, 5) translate(210px, 360px)';//Eminescu
         //Translate: 2 x image width, 2 x image height
     }
 
