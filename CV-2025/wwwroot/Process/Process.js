@@ -21,13 +21,34 @@ var Process = {
         response = await ServerResponse('DisplayUnwnownChar');
         const top = response[1];//38
         const left = response[2];//421
-        
-        Image.ZoomPan[0] = 3;
-        Image.ZoomPan[1] = 575;
-        Image.ZoomPan[2] = 101;
-        Input.target.style.transform = 'scale(5, 5) translate(774px, 434px)';//Licenta 2009
+        const width = response[3];
+
+        const scale = 5;
+        const xAxis = 774 - left;
+        const yAxis = 434;
+
+        Image.ZoomPan[0] = scale;
+        Image.ZoomPan[1] = xAxis;
+        Image.ZoomPan[2] = yAxis;
+
+        Input.target.style.transform = 'scale(' + scale + ', ' + scale + ') translate(' + xAxis + 'px, ' + yAxis + 'px)';//Licenta 2009
         //Input.target.style.transform = 'scale(5, 5) translate(210px, 360px)';//Eminescu
-        //Translate: 2 x image width, 2 x image height
+        //Prima data sa stie sa alinieze imaginea indiferent de dimensiuni, inclusiv pe dimensiuni egale
+        //Apoi sa modific doar latimea, inaltimea a ramana identica pentru fiecare imagine
+
+        //┌───────────────────────Update Database───────────────────────┐
+        const charValue = document.getElementById('Char');
+        charValue.style.visibility = '';
+        charValue.focus();
+        
+        document.getElementById('CharStyle').style.visibility = '';
+
+        document.getElementById('UpdateDB').style.visibility = '';
+        document.getElementById('UpdateDB').onclick = () => {
+            const value = charValue.value;
+            Process.ws.send(JSON.stringify(['UpdateDatabase', value, width]));
+        }
+        //└───────────────────────Update Database───────────────────────┘
     }
 
     /*ws.onmessage = function (evt) {
