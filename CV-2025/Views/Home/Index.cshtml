@@ -1,15 +1,23 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>OCR Score</title>
     <link rel="icon" type="image/x-icon" href="~/Home/favicon.ico">
     <link rel="stylesheet" href="~/Home/Home.css">
     <link rel="stylesheet" href="~/Image/Image.css">
+    <style>
+        #UpdateDB:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
 </head>
 <body>
 
     <ribbon>
         <button id="StartBtn" onclick="Process.StartOCR()">Start recognition</button>
+        <input type="text" id="Char" name="char" style="width: 35px; font-size: x-large; text-align: center; vertical-align: middle; visibility: hidden;">
+        <input type="checkbox" id="CharStyle" style="scale: 1.5; margin-left: 10px; vertical-align: middle; visibility: hidden;">
+        <label for="fname" id="UpdateDB" style="font-size: large; border: 1px solid black; padding: 5px; margin-left: 10px; vertical-align: middle; visibility: hidden;">Send</label>
     </ribbon>
     <div id="FrameLine"></div>
     <div id="Frame">
