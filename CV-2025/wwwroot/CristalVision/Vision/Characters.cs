@@ -1,4 +1,7 @@
-﻿using CV_2025.CristalVision.Database;
+using CV_2025.CristalVision.Database;
+using Google.Protobuf.WellKnownTypes;
+using System;
+using System.Runtime.Versioning;
 
 namespace CV_2025.CristalVision.Vision
 {
@@ -9,17 +12,33 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public int Top = 8192, Bottom = 0, Right = 0, Left = 8192;
 
-        public int Width, Height;
+        /// <summary>
+        /// Database width is based on 50px height
+        /// </summary>
+        public int DBWidth, Width, Height;
 
         /// <summary>
         /// Shape as character
         /// </summary>
         public char value;
+
+        /// <summary>
+        /// Remove this
+        /// </summary>
+        public byte[] section;
     }
 
     public struct ShapeChar
     {
-        public int Chunks, ImageHeight, Reference, Width, Height, FullWidth;
+        /// <summary>
+        /// Color Image properties
+        /// </summary>
+        public int Chunks, ImageHeight, Reference;
+
+        /// <summary>
+        /// ShapeChar properties
+        /// </summary>
+        public int Width, Height, FullWidth;
 
         /// <summary>
         /// Shape as character
@@ -223,6 +242,7 @@ namespace CV_2025.CristalVision.Vision
         }
     }
 
+    [SupportedOSPlatform("windows")]
     public class Characters
     {
         /// <summary>
@@ -280,7 +300,7 @@ namespace CV_2025.CristalVision.Vision
             Content = new byte[Size];
             bitmap256.Content.CopyTo(Content, 0);
 
-            database = new Access("cvcharacters");
+            database = new Access("cvcharacters.accdb");
         }
 
         /// <summary>
@@ -303,14 +323,17 @@ namespace CV_2025.CristalVision.Vision
                     ShapeChar = new(index, Chunks, Height);
                     SetIndexes(index);
                     Extract();
+                    Character character = new() { Top = ShapeChar.Top, Bottom = ShapeChar.Bottom, Left = ShapeChar.Left, Right = ShapeChar.Right, Width = ShapeChar.Width, Height = ShapeChar.Height };
+                    Resize();
                     BMP256ToMonochrome();
                     GetValue();
+                    character.DBWidth = ShapeChar.Width;
+                    character.value = ShapeChar.value;
+                    character.section = ShapeChar.Section;
 
-                    characters.Add(new Character { Top = ShapeChar.Top, Bottom = ShapeChar.Bottom, Left = ShapeChar.Left, Right = ShapeChar.Right, Width = ShapeChar.Width, Height = ShapeChar.Height, value = ShapeChar.value });
+                    characters.Add(character);
                 }//→
             }//↓
-
-            characters = [.. characters.Where(character => character.Width > 8 && character.Height > 15)];
 
             return characters;
         }
@@ -447,6 +470,41 @@ namespace CV_2025.CristalVision.Vision
         }
 
         /// <summary>
+        /// Resize character to 70px height
+        /// </summary>
+        private void Resize()
+        {
+            decimal ZoomWidth = (ShapeChar.Width * 50) / ShapeChar.Height;
+            Bitmap256 CharImage = new(ShapeChar.Width, ShapeChar.Height);
+            ShapeChar.Bitmap256.CopyTo(CharImage.Content, 0);
+            Bitmap256 ZoomImage = new((int)Math.Round(ZoomWidth), 50);
+
+            float raport_pixel = ShapeChar.Height / 50.0F;
+            float raport_pixel_x = 0, raport_pixel_y = 0; //Am nevoie de raport_pixel_x si y pt parcurgerea imaginii originale functia de zoom
+            
+            for (int y_zoom = 0; y_zoom < ZoomImage.Height; y_zoom++)
+            {
+                for (int x_zoom = 0; x_zoom < ZoomImage.Width; x_zoom++)
+                {
+                    int sourceIndex = 1078 + (CharImage.Height - 1 - (int)raport_pixel_y) * CharImage.FullWidth + (int)raport_pixel_x;
+                    int destIndex = 1078 + (50 - 1 - y_zoom) * ZoomImage.FullWidth + x_zoom;
+                    ZoomImage.Content[destIndex] = CharImage.Content[sourceIndex];
+                    
+                    raport_pixel_x += raport_pixel;
+                }
+                raport_pixel_x = 0;
+                raport_pixel_y += raport_pixel;
+            }
+
+            ShapeChar.Bitmap256 = new byte[ZoomImage.Content.Length];
+            ZoomImage.Content.CopyTo(ShapeChar.Bitmap256, 0);
+
+            ShapeChar.Width = ZoomImage.Width;
+            ShapeChar.Height = 50;
+            ShapeChar.FullWidth = ZoomImage.FullWidth;
+        }
+
+        /// <summary>
         /// Turn 5 colors into 8 pixel/byte array &amp; center image
         /// </summary>
         private void BMP256ToMonochrome()
@@ -482,7 +540,9 @@ namespace CV_2025.CristalVision.Vision
             }
             //└───Convert monochrome256 into 8 pixel/byte array───┘
 
-            ShapeChar.Section = content;
+            ShapeChar.Width = strLine.Length / 50;
+            ShapeChar.Section = new byte[content.Length];
+            content.CopyTo(ShapeChar.Section, 0);
         }
 
         /// <summary>
@@ -490,35 +550,24 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         private void GetValue()
         {
+            ShapeChar.value = '␀';
+
             string tableName = ShapeChar.Width + "x" + ShapeChar.Height;
             if (!database.tableNames.Contains(tableName))
-            {
-                ShapeChar.value = '␀';
                 return;
-            }
 
             byte[] section = ShapeChar.Section;
+            if (Monochrome.CountBlackPixels(section) == 2500)
+            {
+
+            }
             database.tableName = tableName;
             List<dynamic>? rows = database.Filter("Black Pixels", Monochrome.CountBlackPixels(section), section);
 
             if (rows == null)
-                ShapeChar.value = '␀';
-            else
-                ShapeChar.value = (Enumerable.SequenceEqual(section, rows[5])) ? rows[2][0] : '␀';
+                return;
 
-            if (ShapeChar.value == 'S')
-            {
-
-            }
-        }
-
-        /// <summary>
-        /// Remove chracter shape
-        /// </summary>
-        public void Remove(ShapeChar character)
-        {
-            foreach (int index in ShapeChar.Indexes)
-                Content[index] = 255;
+            ShapeChar.value = (Enumerable.SequenceEqual(section, rows[5])) ? rows[2][0] : '␀';
         }
     }
 }
