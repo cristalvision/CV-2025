@@ -19,12 +19,12 @@ var Process = {
 
         Process.ws.send(JSON.stringify(['DisplayUnwnownChar', null]));
         response = await ServerResponse('DisplayUnwnownChar');
-        const top = response[1];//38
-        const left = response[2];//421
+        const top = response[1];
+        const left = response[2];
         const width = response[3];
 
         const scale = 5;
-        const xAxis = 774 - left;
+        const xAxis = 774 - 175;
         const yAxis = 434;
 
         Image.ZoomPan[0] = scale;
@@ -40,13 +40,15 @@ var Process = {
         const charValue = document.getElementById('Char');
         charValue.style.visibility = '';
         charValue.focus();
-        
-        document.getElementById('CharStyle').style.visibility = '';
+
+        const charStyle = document.getElementById('CharStyle');
+        charStyle.style.visibility = '';
 
         document.getElementById('UpdateDB').style.visibility = '';
         document.getElementById('UpdateDB').onclick = () => {
+            const style = charStyle.checked;
             const value = charValue.value;
-            Process.ws.send(JSON.stringify(['UpdateDatabase', value, width]));
+            Process.ws.send(JSON.stringify(['UpdateDatabase', style, value, width]));
         }
         //└───────────────────────Update Database───────────────────────┘
     }
