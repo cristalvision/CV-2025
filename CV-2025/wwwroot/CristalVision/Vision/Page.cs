@@ -1,4 +1,3 @@
-﻿using MySqlX.XDevAPI.Relational;
 using System.Xml;
 
 namespace CV_2025.CristalVision.Vision
@@ -6,14 +5,14 @@ namespace CV_2025.CristalVision.Vision
     public class Page(MemoryStream? memoryStream)
     {
         readonly Monochrome monochrome = new(memoryStream);
-        readonly Bitmap256 bitmap256 = new(memoryStream);
+        public readonly Bitmap256 bitmap256 = new(memoryStream);
 
-        Characters? Characters;
+        public Characters? Characters;
         Shapes? Shapes;
         Equations? Equations;
         Tables? Table;
 
-        List<Character>? characters;
+        public List<Character> knownChars = [], unknownChars = [];
         List<Shape>? shapes = [];
         List<Equation>? equations = [];
         List<Table>? tables = [];
@@ -39,14 +38,15 @@ namespace CV_2025.CristalVision.Vision
         }
 
         /// <summary>
-        /// Get list of characters
+        /// Get list of all characters (recognized &amp; unrecognized)
         /// </summary>
         public void GetCharacters()
         {
             Characters = new(bitmap256);
-            characters = Characters.GetText();
+            List<Character> characters = Characters.GetText();
 
-            characters = [.. characters.Where(character => character.value != '␀')];
+            unknownChars = [.. characters.Where(character => character.Width > 7 && character.Height > 15 && character.value == '␀')];
+            knownChars = [.. characters.Where(character => character.Width > 7 && character.Height > 15 && character.value != '␀')];
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetWords()
         {
-            foreach (Character character in characters)
+            foreach (Character character in knownChars)
             {
 
             }
@@ -118,7 +118,8 @@ namespace CV_2025.CristalVision.Vision
             svg.SetAttribute("xmlns:svg", "http://www.w3.org/2000/svg");
             svg.SetAttribute("style", "background: LightSkyBlue");
 
-            foreach (Character character in characters)
+
+            foreach (Character character in knownChars)
             {
                 XmlElement text = document.CreateElement("text");
                 text.SetAttribute("x", character.Left.ToString());
@@ -128,7 +129,42 @@ namespace CV_2025.CristalVision.Vision
                 text.SetAttribute("fill", "darkblue");
                 text.InnerText = character.value.ToString();
                 svg.AppendChild(text);
-            }
+
+            }//Place known characters as text
+
+
+            foreach (Character character in unknownChars)
+            {
+                for (int y = character.Top; y < character.Bottom; y++)
+                {
+                    for (int x = character.Left; x < character.Right; x++)
+                    {
+                        int color = bitmap256.GetPixel(x, y);
+                        if (color == 255) continue;
+
+                        XmlElement rect = document.CreateElement("rect");
+                        rect.SetAttribute("width", "1");
+                        rect.SetAttribute("height", "1");
+                        rect.SetAttribute("x", x.ToString());
+                        rect.SetAttribute("y", y.ToString());
+                        rect.SetAttribute("fill", "black");
+                        svg.AppendChild(rect);
+                    }
+                }
+            }//Place unknown characters as rectangle pixels
+
+            //┌─────────Color first unknown character─────────┐
+            Character character1 = unknownChars[0];
+            XmlElement rectangle = document.CreateElement("rect");
+            rectangle.SetAttribute("x", character1.Left.ToString());
+            rectangle.SetAttribute("y", character1.Top.ToString());
+            rectangle.SetAttribute("width", character1.Width.ToString());
+            rectangle.SetAttribute("height", character1.Height.ToString());
+            rectangle.SetAttribute("fill", "transparent");
+            rectangle.SetAttribute("stroke", "darkblue");
+            rectangle.InnerText = character1.value.ToString();
+            svg.AppendChild(rectangle);
+            //└─────────Color first unknown character─────────┘
 
             document.AppendChild(svg);
 
