@@ -23,7 +23,7 @@ var Process = {
         const left = response[2];
         const width = response[3];
 
-        const scale = 5;
+        const scale = 1;
         const xAxis = 774 - 175;
         const yAxis = 434;
 
@@ -31,7 +31,7 @@ var Process = {
         Image.ZoomPan[1] = xAxis;
         Image.ZoomPan[2] = yAxis;
 
-        Input.target.style.transform = 'scale(' + scale + ', ' + scale + ') translate(' + xAxis + 'px, ' + yAxis + 'px)';//Licenta 2009
+        //Input.target.style.transform = 'scale(' + scale + ', ' + scale + ') translate(' + xAxis + 'px, ' + yAxis + 'px)';//Licenta 2009
         //Input.target.style.transform = 'scale(5, 5) translate(210px, 360px)';//Eminescu
         //Prima data sa stie sa alinieze imaginea indiferent de dimensiuni, inclusiv pe dimensiuni egale
         //Apoi sa modific doar latimea, inaltimea a ramana identica pentru fiecare imagine
@@ -44,11 +44,14 @@ var Process = {
         const charStyle = document.getElementById('CharStyle');
         charStyle.style.visibility = '';
 
-        document.getElementById('UpdateDB').style.visibility = '';
-        document.getElementById('UpdateDB').onclick = () => {
+        const updateBtn = document.getElementById('UpdateDB');
+        updateBtn.style.visibility = '';
+        updateBtn.onclick = () => {
             const style = charStyle.checked;
             const value = charValue.value;
             Process.ws.send(JSON.stringify(['UpdateDatabase', style, value, width]));
+            charStyle.style.visibility = 'hidden';
+            updateBtn.style.visibility = 'hidden';
         }
         //└───────────────────────Update Database───────────────────────┘
     }
