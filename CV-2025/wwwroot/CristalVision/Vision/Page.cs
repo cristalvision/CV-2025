@@ -153,6 +153,11 @@ namespace CV_2025.CristalVision.Vision
                 }
             }//Place unknown characters as rectangle pixels
 
+            document.AppendChild(svg);
+
+            if (unknownChars.Count == 0)
+                return document;
+            
             //┌─────────Color first unknown character─────────┐
             Character character1 = unknownChars[0];
             XmlElement rectangle = document.CreateElement("rect");
@@ -163,10 +168,10 @@ namespace CV_2025.CristalVision.Vision
             rectangle.SetAttribute("fill", "transparent");
             rectangle.SetAttribute("stroke", "darkblue");
             rectangle.InnerText = character1.value.ToString();
-            svg.AppendChild(rectangle);
+            document.ChildNodes[1].AppendChild(rectangle);
             //└─────────Color first unknown character─────────┘
 
-            document.AppendChild(svg);
+            document.AppendChild(document.ChildNodes[1]);
 
             return document;
         }
