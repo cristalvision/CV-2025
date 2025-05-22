@@ -29,7 +29,9 @@ namespace CV_2025.CristalVision.Database
 
             tableNames = [];
             for (int i = 0; i < userTables.Rows.Count; i++)
+            {
                 tableNames.Add((string)userTables.Rows[i][2]);
+            }
         }
 
         public void Insert(List<string> colNames, List<dynamic> values)
@@ -37,8 +39,8 @@ namespace CV_2025.CristalVision.Database
             //Check database type vs given type
             List<string> parameters = colNames.Select(parameter => "@" + parameter.Replace(" ", String.Empty)).ToList();
             string query1 = "INSERT INTO `" + tableName + "` (`" + String.Join("`, `", colNames) + "`) VALUES (" + String.Join(", ", parameters) + ")";
-            
-            OleDbCommand command = new OleDbCommand(query1, connection);
+
+            OleDbCommand command = new(query1, connection);
 
             for (int index = 0; index < values.Count; index++)
                 command.Parameters.AddWithValue(parameters[index], values[index]);
@@ -48,8 +50,9 @@ namespace CV_2025.CristalVision.Database
 
         public override List<dynamic>? Filter(string uniqueColumn, dynamic uniqueValue, byte[] data)
         {
-            string query = "SELECT * FROM `" + tableName + "` WHERE `" + uniqueColumn + "` = '" + uniqueValue + "'";
-            OleDbCommand command = new OleDbCommand(query, connection);
+            //string query = "SELECT * FROM [" + tableName + "] WHERE '" + uniqueColumn + "' = '" + uniqueValue + "'";
+            string query = "SELECT * FROM [" + tableName + "] WHERE [" + uniqueColumn + "] = " + uniqueValue;
+            OleDbCommand command = new(query, connection);
 
             OleDbDataReader reader = command.ExecuteReader();
             List<dynamic>? rows = [];
@@ -67,7 +70,7 @@ namespace CV_2025.CristalVision.Database
 
         public override void ExecuteNonQuery(string query)
         {
-            OleDbCommand oleDbCommand = new OleDbCommand(query, connection);
+            OleDbCommand oleDbCommand = new(query, connection);
             oleDbCommand.ExecuteNonQuery();
         }
     }
