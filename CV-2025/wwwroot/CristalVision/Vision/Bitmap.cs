@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Drawing;
+using System.Runtime.Versioning;
 using System.Xml;
 
 namespace CV_2025.CristalVision.Vision
@@ -8,6 +9,8 @@ namespace CV_2025.CristalVision.Vision
     {
         public enum Format { Square, Vertical, Horizontal, Irregular }
         public int Width, Height, Area, PositionX, PositionY, chunk, index;
+        public Delegate SetIndex;
+        public Format format;
 
         /// <summary>
         /// Monochrome Image width + extra pixels
@@ -90,7 +93,7 @@ namespace CV_2025.CristalVision.Vision
         /// <summary>
         /// Turn section into black and white based on brightness average
         /// </summary>
-        public void ColorToMonochrome(ref byte[] Content, Delegate setIndex)
+        public void ColorToMonochrome(ref byte[] Content)
         {
             for (int i = 0; i < Area; i += 8)
             {
@@ -102,7 +105,7 @@ namespace CV_2025.CristalVision.Vision
                 PositionY = (i - PositionX) / Width;
 
                 chunk = (PositionX - PositionX % 8 + 8) / 8 - 1;
-                setIndex.DynamicInvoke();
+                SetIndex.DynamicInvoke();
                 bitArray.CopyTo(Content, index);
             }
         }
@@ -152,130 +155,101 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public byte[] Content;
 
-        public Monochrome(Stream? stream)
+        static (int byte1, int byte2) CalculateBytes(int value)
         {
-            ColorImage = new(stream);
+            return (value % 256, value / 256);
+        }
 
-            //┌───────────────────────Check header────────────────────────┐
+        static (int byte2, int byte3, int byte4) CalculateBytesForSizeOrArea(int value)
+        {
+            int byte4 = value / 65536;
+            int byte3 = (value % 65536) / 256;
+            int byte2 = value % 256;
+            return (byte2, byte3, byte4);
+        }
 
-            //└───────────────────────Check header────────────────────────┘
+        static int CalculateExtraPixels(int width) => (width % 32 == 0) ? 0 : 32 - (width % 32);
 
-
-            //┌────────────────────────Image width────────────────────────┐
-            Width = ColorImage.Width;
-            int byte18 = 0, byte19 = 0;
-            if (Width > 255)
-            {
-                byte18 = Width % 256;
-                byte19 = (Width - Width % 256) / 256;
-            }
-            else
-            {
-                byte18 = Width;
-            }
-            if (Width > 8192)
-                throw new Exception("Widh out of range");
-            //└────────────────────────Image width────────────────────────┘
-
-
-            //┌───────────────────────Image Height────────────────────────┐
-            Height = ColorImage.Height;
-            int byte22, byte23 = 0;
-            if (Height > 255)
-            {
-                byte22 = Height % 256;
-                byte23 = (Height - Height % 256) / 256;
-            }
-            else
-            {
-                byte22 = Height;
-            }
-
-            if (Height > 8192)
-                throw new Exception("Height out of range");
-            //└───────────────────────Image Height────────────────────────┘
-
-
-            //┌───────────────────Remaining properties────────────────────┐
-            ExtraPixels = Width % 32;
-            if (ExtraPixels != 0) ExtraPixels = 32 - ExtraPixels;
-            TotalArea = (Width + ExtraPixels) * Height;
-            FullWidth = Width + ExtraPixels;
-            Size = FullWidth / 8 * Height + 62;
-            Chunks = FullWidth / 8;
-            //└───────────────────Remaining properties────────────────────┘
-
-
-            //┌─────────────────────────File size─────────────────────────┐
-            int byte2, byte3, byte4;
-            byte2 = Size % 256;
-            byte3 = (Size - byte2) % 65536 / 256;
-            byte4 = (Size - byte2 - byte3 * 256) / 65536;
-            //└─────────────────────────File size─────────────────────────┘
-
-
-            //┌────────────────────────Total area─────────────────────────┐
-            int byte34, byte35, byte36;
-            byte34 = TotalArea % 256;
-            byte35 = (TotalArea - byte34) % 65536 / 256;
-            byte36 = (TotalArea - byte34 - byte35 * 256) / 65536;
-            //└────────────────────────Total area─────────────────────────┘
-
-
-            //┌───────────────────────Write Content───────────────────────┐
+        void InitializeContent()
+        {
             Content = new byte[Size];
-            byte[] header = [66, 77, (byte)byte2, (byte)byte3, (byte)byte4, 0, 0, 0, 0, 0, 62, 0, 0, 0, 40, 0, 0, 0, (byte)byte18, (byte)byte19, 0, 0, (byte)byte22, (byte)byte23, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, (byte)byte34, (byte)byte35, (byte)byte36, 0, 195, 14, 0, 0, 195, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0];
+            byte[] header = GetHeader();
             header.CopyTo(Content, 0);
             for (int index = 62; index < Size; index++) Content[index] = 255;
-            //└───────────────────────Write Content───────────────────────┘
+        }
 
+        void ProcessSection(Section section)
+        {
+            section.SetBrightness(Section.Format.Square, ref ColorImage);
+            section.ColorToMonochrome(ref Content);
+        }
 
-            //┌─────────────────────24 bit to 2 colors────────────────────┐
-            /// <summary>
-            /// Color to black and white based on averge brightness of 48x48 sections
-            /// </summary>
+        /// <summary>
+        /// Color to black and white based on averge brightness of 48x48 sections
+        /// </summary>
+        void ProcessSections()
+        {
             Section section;
 
             for (int referenceY = 0; referenceY < Height - Height % 48; referenceY += 48)
             {
                 for (int referenceX = 0; referenceX < Width - Width % 48; referenceX += 48)
                 {
-                    section = new() { Width = 48, Height = 48, ReferenceX = referenceX, ReferenceY = referenceY, Area = 2304 };
-                    section.SetBrightness(Section.Format.Square, ref ColorImage);
-                    section.ColorToMonochrome(ref Content, () => {
-                        section.index = 62 + section.chunk + section.ReferenceX / 8 + Chunks * (Height - referenceY - section.PositionY - 1);
-                    });
+                    section = new() { Width = 48, Height = 48, ReferenceX = referenceX, ReferenceY = referenceY, Area = 2304, format = Section.Format.Square };
+                    section.SetIndex = () => section.index = 62 + section.chunk + section.ReferenceX / 8 + Chunks * (Height - section.ReferenceY - section.PositionY - 1);
+                    ProcessSection(section);
                 }//48 ⨯ 48 →
 
-                section = new() { Width = FullWidth - Width + Width % 48, Height = 48, ReferenceY = referenceY, FullWidth = FullWidth, Area = (FullWidth - Width + Width % 48) * 48 };
-                section.SetBrightness(Section.Format.Vertical, ref ColorImage);
-                section.ColorToMonochrome(ref Content, () => {
-                    section.index = 62 + section.chunk + (Width - Width % 48) / 8 + Chunks * (Height - referenceY - section.PositionY - 1);
-                });//width ⨯ 48
+                section = new() { Width = FullWidth - Width + Width % 48, Height = 48, ReferenceY = referenceY, FullWidth = FullWidth, Area = (FullWidth - Width + Width % 48) * 48, format = Section.Format.Vertical };
+                section.SetIndex = () => section.index = 62 + section.chunk + (Width - Width % 48) / 8 + Chunks * (Height - section.ReferenceY - section.PositionY - 1);
+                ProcessSection(section);//width ⨯ 48
 
             }//48 ⨯ 48 ↓
 
             for (int referenceX = 0; referenceX < Width - Width % 48; referenceX += 48)
             {
-                section = new() { Width = 48, Height = Height % 48, ReferenceX = referenceX, Area = Height % 48 * 48 };
-                section.SetBrightness(Section.Format.Horizontal, ref ColorImage);
-                section.ColorToMonochrome(ref Content, () => {
-                    section.index = 62 + section.chunk + section.ReferenceX / 8 + Chunks * (Height % 48 - section.PositionY - 1);
-                });
-
+                section = new() { Width = 48, Height = Height % 48, ReferenceX = referenceX, Area = Height % 48 * 48, format = Section.Format.Horizontal };
+                section.SetIndex = () => section.index = 62 + section.chunk + section.ReferenceX / 8 + Chunks * (Height % 48 - section.PositionY - 1);
+                ProcessSection(section);
             }//48 ⨯ height →
 
-            section = new() { Width = FullWidth - Width + Width % 48, Height = Height % 48, Area = (FullWidth - Width + Width % 48) * (Height % 48), FullWidth = FullWidth };
-            section.SetBrightness(Section.Format.Irregular, ref ColorImage);
-            section.ColorToMonochrome(ref Content, () => {
-                section.index = 62 + section.chunk + (Width - Width % 48) / 8 + Chunks * (Height - (Height - Height % 48) - section.PositionY - 1);
-            });//width ⨯ height
-            //└─────────────────────24 bit to 2 colors────────────────────┘
+            section = new() { Width = FullWidth - Width + Width % 48, Height = Height % 48, Area = (FullWidth - Width + Width % 48) * (Height % 48), FullWidth = FullWidth, format = Section.Format.Irregular };
+            section.SetIndex = () => section.index = 62 + section.chunk + (Width - Width % 48) / 8 + Chunks * (Height - (Height - Height % 48) - section.PositionY - 1);
+            ProcessSection(section);//width ⨯ height
+        }
 
+        [SupportedOSPlatform("windows")]
+        public Monochrome(Stream? stream)
+        {
+            //┌───────────────────────Check header────────────────────────┐
 
-            //┌──────────────────Ceate 1px white outline──────────────────┐
+            //└───────────────────────Check header────────────────────────┘
 
-            //└──────────────────Ceate 1px white outline──────────────────┘
+            ColorImage = new(stream);
+            Width = ColorImage.Width;
+            Height = ColorImage.Height;
+
+            if (Width > 8192)
+                throw new ArgumentOutOfRangeException(nameof(Width), "Width is out of range (max 8192)");
+
+            if (Height > 8192)
+                throw new ArgumentOutOfRangeException(nameof(Height), "Height is out of range (max 8192)");
+
+            ExtraPixels = CalculateExtraPixels(Width);
+            TotalArea = (Width + ExtraPixels) * Height;
+            FullWidth = Width + ExtraPixels;
+            Size = FullWidth / 8 * Height + 62;
+            Chunks = FullWidth / 8;
+
+            int byte2, byte3, byte4, byte18, byte19, byte22, byte23, byte34, byte35, byte36;
+
+            (byte18, byte19) = CalculateBytes(Width);
+            (byte22, byte23) = CalculateBytes(Height);
+            (byte2, byte3, byte4) = CalculateBytesForSizeOrArea(Size);
+            (byte34, byte35, byte36) = CalculateBytesForSizeOrArea(TotalArea);
+
+            InitializeContent();
+            ProcessSections();
         }
 
         public Monochrome(int width, int height)
@@ -343,7 +317,7 @@ namespace CV_2025.CristalVision.Vision
 
             //┌───────────────────────Write Content───────────────────────┐
             Content = new byte[Size];
-            byte[] header = [66, 77, (byte)byte2, (byte)byte3, (byte)byte4, 0, 0, 0, 0, 0, 62, 0, 0, 0, 40, 0, 0, 0, (byte)byte18, (byte)byte19, 0, 0, (byte)byte22, (byte)byte23, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, (byte)byte34, (byte)byte35, (byte)byte36, 0, 195, 14, 0, 0, 195, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0];
+            byte[] header = GetHeader();
             header.CopyTo(Content, 0);
             for (int index = 62; index < Size; index++) Content[index] = 255;
             //└───────────────────────Write Content───────────────────────┘
@@ -542,6 +516,33 @@ namespace CV_2025.CristalVision.Vision
             }
 
             return document;
+        }
+
+        byte[] GetHeader()
+        {
+            // BMP Header
+            byte[] header =
+            [
+            0x42, 0x4D, // BM
+            (byte)(Size), (byte)(Size >> 8), (byte)(Size >> 16), (byte)(Size >> 24),
+            0x00, 0x00, 0x00, 0x00, // Reserved
+            0x3E, 0x00, 0x00, 0x00, // Offset (62 bytes)
+            0x28, 0x00, 0x00, 0x00, // DIB header size (40 bytes)
+            (byte)(Width), (byte)(Width >> 8), 0x00, 0x00,
+            (byte)(Height), (byte)(Height >> 8), 0x00, 0x00,
+            0x01, 0x00, // Planes
+            0x01, 0x00, // Bit count (1-bit)
+            0x00, 0x00, 0x00, 0x00, // No compression
+            (byte)(TotalArea), (byte)(TotalArea >> 8), (byte)(TotalArea >> 16), (byte)(TotalArea >> 24),
+            0x13, 0x0B, 0x00, 0x00, // X pixels/m
+            0x13, 0x0B, 0x00, 0x00, // Y pixels/m
+            0x00, 0x00, 0x00, 0x00, // Colors used
+            0x00, 0x00, 0x00, 0x00, // Important colors
+            0x00, 0x00, 0x00, 0x00, // Black
+            0xFF, 0xFF, 0xFF, 0x00 // White
+            ];
+
+            return header;
         }
 
         public static int CountBlackPixels(byte[] section)
@@ -807,7 +808,7 @@ namespace CV_2025.CristalVision.Vision
             for (int index = 1078; index < Size; index++) Content[index] = 255;
         }
 
-        public int GetPixel(int x, int y)
+        public byte GetPixel(int x, int y)
         {
             if (!Enumerable.Range(0, Width).Contains(x) || !Enumerable.Range(0, Height).Contains(y))
                 throw new Exception("Position out of range");
