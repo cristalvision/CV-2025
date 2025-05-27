@@ -1,4 +1,4 @@
-﻿var Image = {
+var Image = {
 
     name: null, contentType: null, width: null, height: null, length: 0, ZoomPan: [1], target: {},
 
@@ -28,7 +28,8 @@
         const source = ('Image/Display?Name=' + this.name + '&contentType=' + this.contentType + '&length=' + this.length).replaceAll('+', '%2b');
         this.target = Object.assign(document.createElement('img'), { id: 'Bitmap', src: source, draggable: false });
 
-        (this.width > this.height) ? this.target.style.width = '100%' : this.target.style.height = '100%';
+        //(this.width > this.height) ? this.target.style.width = '100%' : this.target.style.height = '100%';
+        this.target.style.height = '100%';
 
         this.target.addEventListener('wheel', this.Zoom);
 
