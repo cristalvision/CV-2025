@@ -1,5 +1,3 @@
-using MySql.Data.MySqlClient;
-using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Runtime.Versioning;
@@ -48,9 +46,8 @@ namespace CV_2025.CristalVision.Database
             command.ExecuteNonQuery();
         }
 
-        public override List<dynamic>? Filter(string uniqueColumn, dynamic uniqueValue, byte[] data)
+        public override List<dynamic>? Filter(string uniqueColumn, dynamic uniqueValue)
         {
-            //string query = "SELECT * FROM [" + tableName + "] WHERE '" + uniqueColumn + "' = '" + uniqueValue + "'";
             string query = "SELECT * FROM [" + tableName + "] WHERE [" + uniqueColumn + "] = " + uniqueValue;
             OleDbCommand command = new(query, connection);
 
@@ -72,6 +69,11 @@ namespace CV_2025.CristalVision.Database
         {
             OleDbCommand oleDbCommand = new(query, connection);
             oleDbCommand.ExecuteNonQuery();
+        }
+
+        public override void Close()
+        {
+            connection.Close();
         }
     }
 }
