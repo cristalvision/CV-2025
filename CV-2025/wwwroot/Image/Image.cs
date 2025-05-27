@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Drawing;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.Versioning;
 
 namespace CV_2025.wwwroot.Image
 {
+    [SupportedOSPlatform("windows")]
     public class Image : Controller
     {
         [HttpPost]
@@ -16,16 +19,9 @@ namespace CV_2025.wwwroot.Image
                 MemoryMappedViewStream sourceView = sourceMappedFile.CreateViewStream();
                 await file.CopyToAsync(sourceView);
 
-                /*string fileName = Path.GetFileName(file.FileName);
-                string absolutePath = Path.Combine(@"wwwroot\Test files\", fileName);
-
-                Stream fileStream = new FileStream(absolutePath, FileMode.Create);
-                await file.CopyToAsync(fileStream);
-                fileStream.Close();
-
-                Bitmap Image = new(absolutePath);*/
-
-                return Json(new { response = "OK", name = mapName, contentType = file.ContentType, width = 10, height = 10, length = file.Length });
+                Bitmap Image = new(sourceView);
+                
+                return Json(new { response = "OK", name = mapName, contentType = file.ContentType, width = Image.Width, height = Image.Height, length = file.Length });
             }
             catch (Exception ex)
             {
