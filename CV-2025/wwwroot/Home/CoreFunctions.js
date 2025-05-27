@@ -27,7 +27,7 @@ function ServerResponse(action) {
                 return;
             }
 
-            resolve(response[1]);
+            resolve(response);
         }
     });
 }
