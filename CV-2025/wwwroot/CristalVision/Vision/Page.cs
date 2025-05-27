@@ -17,10 +17,16 @@ namespace CV_2025.CristalVision.Vision
         Tables? Table;
 
         public List<Character> knownChars = [], unknownChars = [];
+        List<Word>? words;
         List<Shape>? shapes = [];
         List<Equation>? equations = [];
         List<Table>? tables = [];
         List<Paragraph>? Paragraphs = [];
+
+        /// <summary>
+        /// Distance factor to the next char relative to actual char width
+        /// </summary>
+        Dictionary<char, float> distanceFactor = new() { { 'd', 3.7F }, { '/', 1 } };
 
         public Page(MemoryStream? memoryStream)
         {
@@ -28,9 +34,17 @@ namespace CV_2025.CristalVision.Vision
             bitmap256 = new(memoryStream);
         }
 
-        public struct Word
+        public struct Word()
         {
+            /// <summary>
+            /// Relative positions to the image
+            /// </summary>
+            public int Top, Bottom, Left, Right;
 
+            /// <summary>
+            /// List of characters representing this word
+            /// </summary>
+            public List<char> value = [];
         }
         public struct Row
         {
@@ -89,12 +103,37 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetWords()
         {
-            //database.tableName = "DistanceBetweenChars";
-            //List<dynamic>? rows = database.Filter("ID", "\"d-30\"");
+            words = [];
 
-            Character firstChar = knownChars[0];
-            //30 -> 7
+            while (knownChars.Count > 0)
+            {
+                Character thisChar = knownChars[0];
+                Word word = new();
+                word.value.Add(thisChar.value);
+                knownChars.Remove(thisChar);
 
+                if (!distanceFactor.ContainsKey(thisChar.value))
+                    break;//<---Remove this block
+
+                float distance = thisChar.Width / distanceFactor[thisChar.value];//Max distance to the next character
+
+                while (thisChar.value != ' ')
+                {
+                    List<Character> charsToRight = [.. knownChars.Where(character => character.Left < thisChar.Right + distance && character.Left > thisChar.Right)];
+                    List<Character> nextChars = [.. charsToRight.Where(character => character.Top < thisChar.Bottom && character.Bottom > thisChar.Top)];
+
+                    Character nextChar = (nextChars.Count > 0) ? nextChars[0] : new Character() { value = ' ' };
+
+                    if (nextChar.value == ' ')
+                        break;
+
+                    word.value.Add(nextChar.value);
+                    knownChars.Remove(nextChar);
+                    thisChar = nextChar;
+                }
+
+                words.Add(word);
+            }
         }
 
         /// <summary>
