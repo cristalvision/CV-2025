@@ -42,6 +42,9 @@ namespace CV_2025.wwwroot.Process
             page.GetWords();
             page.GetRows();
             page.GetParagraphs();
+            page.GetSections();
+
+            page.database.Close();
             //└─────────────Pixels to structures──────────────┘
 
 
@@ -81,11 +84,11 @@ namespace CV_2025.wwwroot.Process
         public async Task UpdateDatabase(bool style, char value, int DBWidth)
         {
             if (value == '␀') return;
-
-            string tableName = DBWidth + "x" + 50;
+            
+            string tableName = DBWidth + "x" + 50;//"88"
             if (!page.Characters.database.tableNames.Contains(tableName))
             {
-                string query = "CREATE TABLE " + tableName + " (ID AUTOINCREMENT PRIMARY KEY, `Black Pixels` Number, Charcater CHAR(1), Family CHAR(15), Style CHAR(6), CharSection VARBINARY);";
+                string query = "CREATE TABLE " + tableName + " (ID AUTOINCREMENT PRIMARY KEY, `Black Pixels` Number, Charcater CHAR(1), Family CHAR(15), Style CHAR(6), CharSection LONGBINARY);";
                 //string MySQL = "CREATE TABLE " + tableName + " (ID int NOT NULL AUTO_INCREMENT, `Black Pixels` int NOT NULL, Value char(1) NOT NULL, Family varchar(15) NOT NULL, Style varchar(6), Section blob NOT NULL, PRIMARY KEY (ID))";
                 page.Characters.database.ExecuteNonQuery(query);
             }
@@ -93,6 +96,7 @@ namespace CV_2025.wwwroot.Process
             byte[] section = page.unknownChars[0].section;
             page.Characters.database.tableName = tableName;
             dynamic fontStyle = (style) ? "Italic" : DBNull.Value;
+            int blackPixels = Monochrome.CountBlackPixels(section);//1800
             page.Characters.database.Insert(["Black Pixels", "Charcater", "Family", "Style", "CharSection"], [Monochrome.CountBlackPixels(section), value, "Times New Roman", fontStyle, section]);
         }
     }
