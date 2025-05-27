@@ -1,9 +1,7 @@
-using Microsoft.Net.Http.Headers;
 using System.Collections;
 using System.Drawing;
 using System.Runtime.Versioning;
 using System.Xml;
-using static System.Collections.Specialized.BitVector32;
 
 namespace CV_2025.CristalVision.Vision
 {
