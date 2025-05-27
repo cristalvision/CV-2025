@@ -26,7 +26,6 @@ namespace CV_2025.CristalVision.Vision
         {
             monochrome = new(memoryStream);
             bitmap256 = new(memoryStream);
-            database = new Access("cvpage.accdb");
         }
 
         public struct Word
@@ -90,8 +89,8 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetWords()
         {
-            database.tableName = "DistanceBetweenChars";
-            List<dynamic>? rows = database.Filter("ID", "\"d-30\"");
+            //database.tableName = "DistanceBetweenChars";
+            //List<dynamic>? rows = database.Filter("ID", "\"d-30\"");
 
             Character firstChar = knownChars[0];
             //30 -> 7
