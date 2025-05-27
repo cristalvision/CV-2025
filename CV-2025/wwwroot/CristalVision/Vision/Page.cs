@@ -1,11 +1,15 @@
+using CV_2025.CristalVision.Database;
+using System.Runtime.Versioning;
 using System.Xml;
 
 namespace CV_2025.CristalVision.Vision
 {
-    public class Page(MemoryStream? memoryStream)
+    [SupportedOSPlatform("windows")]
+    public class Page
     {
-        readonly Monochrome monochrome = new(memoryStream);
-        public readonly Bitmap256 bitmap256 = new(memoryStream);
+        Monochrome monochrome;
+        public Bitmap256 bitmap256;
+        public Access database;
 
         public Characters? Characters;
         Shapes? Shapes;
@@ -17,6 +21,13 @@ namespace CV_2025.CristalVision.Vision
         List<Equation>? equations = [];
         List<Table>? tables = [];
         List<Paragraph>? Paragraphs = [];
+
+        public Page(MemoryStream? memoryStream)
+        {
+            monochrome = new(memoryStream);
+            bitmap256 = new(memoryStream);
+            database = new Access("cvpage.accdb");
+        }
 
         public struct Word
         {
@@ -44,6 +55,7 @@ namespace CV_2025.CristalVision.Vision
         {
             Characters = new(bitmap256);
             List<Character> characters = Characters.GetText();
+            Characters.database.Close();
 
             unknownChars = [.. characters.Where(character => character.Width > 7 && character.Height > 15 && character.value == '␀')];
             knownChars = [.. characters.Where(character => character.Width > 7 && character.Height > 15 && character.value != '␀')];
@@ -78,10 +90,12 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetWords()
         {
-            foreach (Character character in knownChars)
-            {
+            database.tableName = "DistanceBetweenChars";
+            List<dynamic>? rows = database.Filter("ID", "\"d-30\"");
 
-            }
+            Character firstChar = knownChars[0];
+            //30 -> 7
+
         }
 
         /// <summary>
@@ -93,13 +107,21 @@ namespace CV_2025.CristalVision.Vision
         }
 
         /// <summary>
-        /// Assembly rows/shapes/tables in paragraphs
+        /// Assembly rows in paragraphs
         /// </summary>
         public void GetParagraphs()
         {
             Paragraph paragraph = new();
 
             int counter = paragraph.Rows.Count;
+
+        }
+
+        /// <summary>
+        /// Assembly paragraphs/shapes/tables in sections
+        /// </summary>
+        public void GetSections()
+        {
 
         }
 
@@ -155,11 +177,33 @@ namespace CV_2025.CristalVision.Vision
 
             document.AppendChild(svg);
 
+            //┌─────────Color first unknown character─────────┐
+            List<Character> displayChars = [knownChars[0], knownChars[12]];
+            char firstChar = displayChars[0].value;//d
+            int right = displayChars[0].Right;//707
+            int width = displayChars[0].Width;//30
+            char secondChar = displayChars[1].value;//e
+            int left = displayChars[1].Left;//714
+
+            foreach (Character character in displayChars)
+            {
+                XmlElement rectangle = document.CreateElement("rect");
+                rectangle.SetAttribute("x", character.Left.ToString());
+                rectangle.SetAttribute("y", character.Top.ToString());
+                rectangle.SetAttribute("width", character.Width.ToString());
+                rectangle.SetAttribute("height", character.Height.ToString());
+                rectangle.SetAttribute("fill", "transparent");
+                rectangle.SetAttribute("stroke", "darkblue");
+                rectangle.InnerText = character.value.ToString();
+                document.ChildNodes[1].AppendChild(rectangle);
+            }
+            //└─────────Color first unknown character─────────┘
+
             if (unknownChars.Count == 0)
                 return document;
             
             //┌─────────Color first unknown character─────────┐
-            Character character1 = unknownChars[0];
+            /*Character character1 = unknownChars[0];
             XmlElement rectangle = document.CreateElement("rect");
             rectangle.SetAttribute("x", character1.Left.ToString());
             rectangle.SetAttribute("y", character1.Top.ToString());
@@ -168,7 +212,7 @@ namespace CV_2025.CristalVision.Vision
             rectangle.SetAttribute("fill", "transparent");
             rectangle.SetAttribute("stroke", "darkblue");
             rectangle.InnerText = character1.value.ToString();
-            document.ChildNodes[1].AppendChild(rectangle);
+            document.ChildNodes[1].AppendChild(rectangle);*/
             //└─────────Color first unknown character─────────┘
 
             document.AppendChild(document.ChildNodes[1]);
