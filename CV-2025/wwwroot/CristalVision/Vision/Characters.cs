@@ -1,6 +1,4 @@
 using CV_2025.CristalVision.Database;
-using Google.Protobuf.WellKnownTypes;
-using System;
 using System.Runtime.Versioning;
 
 namespace CV_2025.CristalVision.Vision
@@ -309,7 +307,7 @@ namespace CV_2025.CristalVision.Vision
         public List<Character> GetText()
         {
             int reference = 1078 + Chunks * (Height - 1);
-            List<Character> characters = new List<Character>();
+            List<Character> characters = [];
 
             for (int y = 0; y < Height - 1; y++)
             {
@@ -557,17 +555,20 @@ namespace CV_2025.CristalVision.Vision
                 return;
 
             byte[] section = ShapeChar.Section;
-            if (Monochrome.CountBlackPixels(section) == 2500)
-            {
-
-            }
             database.tableName = tableName;
-            List<dynamic>? rows = database.Filter("Black Pixels", Monochrome.CountBlackPixels(section), section);
+            List<dynamic>? rows = database.Filter("Black Pixels", Monochrome.CountBlackPixels(section));
 
             if (rows == null)
                 return;
 
-            ShapeChar.value = (Enumerable.SequenceEqual(section, rows[5])) ? rows[2][0] : '␀';
+            for (int colNr = 5; colNr < rows.Count; colNr+=6) 
+            {
+                if (Enumerable.SequenceEqual(section, rows[colNr]))
+                {
+                    ShapeChar.value = rows[colNr - 3][0];
+                    return;
+                }
+            }
         }
     }
 }
