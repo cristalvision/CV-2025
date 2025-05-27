@@ -1,4 +1,4 @@
-﻿using CV_2025.CristalVision.Database;
+using CV_2025.CristalVision.Database;
 using NetTopologySuite.Geometries;
 
 namespace CV_2025.CristalVision.Vision
@@ -80,7 +80,7 @@ namespace CV_2025.CristalVision.Vision
             while (!endLine)
             {
                 section = monochrome.GetSection(reference, 80, 5);
-                List<dynamic> rows = database.Filter("Black Pixels", Monochrome.CountBlackPixels(section), section);
+                List<dynamic> rows = database.Filter("Black Pixels", Monochrome.CountBlackPixels(section));
 
                 if (rows.Count == 0)
                 {
