@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+using MySql.Data.MySqlClient;
 using MySql.Data.Types;
 using NetTopologySuite.Geometries;
 
@@ -6,7 +6,7 @@ namespace CV_2025.CristalVision.Database
 {
     public class MySQL : CVDatabase
     {
-        public string tableName;
+        public string? tableName;
         public List<string> tableNames;
         MySqlConnection connection;
 
@@ -45,7 +45,7 @@ namespace CV_2025.CristalVision.Database
             command.ExecuteNonQuery();
         }
 
-        public override List<dynamic>? Filter(string uniqueColumn, dynamic uniqueValue, byte[] section)
+        public override List<dynamic>? Filter(string uniqueColumn, dynamic uniqueValue)
         {
             string query = "SELECT * FROM `" + tableName + "` WHERE `" + uniqueColumn + "` = '" + uniqueValue + "'";
             MySqlCommand command = new MySqlCommand(query, connection);
@@ -61,7 +61,7 @@ namespace CV_2025.CristalVision.Database
 
             reader.Close();
 
-            return rows.Count == 0 ? null : rows;
+            return rows.Count != 0 ? rows : null;
         }
 
         public override void ExecuteNonQuery(string query)
@@ -93,6 +93,11 @@ namespace CV_2025.CristalVision.Database
             MySqlGeometry sqlGeometry2 = new MySqlGeometry(MySqlDbType.Geometry, [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, value[34], value[35], value[36], 0, 0, 0, 0, 0, value[42], value[43], value[44]]);
 
             return new LineSegment((double)sqlGeometry1.XCoordinate, (double)sqlGeometry1.YCoordinate, (double)sqlGeometry2.XCoordinate, (double)sqlGeometry2.YCoordinate);
+        }
+
+        public override void Close()
+        {
+            connection.Close();
         }
     }
 }
