@@ -1,16 +1,23 @@
+using Microsoft.Net.Http.Headers;
 using System.Collections;
 using System.Drawing;
 using System.Runtime.Versioning;
 using System.Xml;
+using static System.Collections.Specialized.BitVector32;
 
 namespace CV_2025.CristalVision.Vision
 {
+    [SupportedOSPlatform("windows")]
     struct Section
     {
         public enum Format { Square, Vertical, Horizontal, Irregular }
-        public int Width, Height, Area, PositionX, PositionY, chunk, index;
-        public Delegate SetIndex;
         public Format format;
+        public int Width, Height, Area, PositionX, PositionY, chunk, index;
+
+        /// <summary>
+        /// Compute index in the output byte array for current section
+        /// </summary>
+        public Delegate SetIndex;
 
         /// <summary>
         /// Monochrome Image width + extra pixels
@@ -111,9 +118,12 @@ namespace CV_2025.CristalVision.Vision
         }
     }
 
+    [SupportedOSPlatform("windows")]
     public class Monochrome
     {
         public Bitmap ColorImage;
+
+        byte[] Header;
 
         /// <summary>
         /// File size in bytes
@@ -155,27 +165,39 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public byte[] Content;
 
-        static (int byte1, int byte2) CalculateBytes(int value)
-        {
-            return (value % 256, value / 256);
-        }
+        const int HeaderSize = 62, SectionSize = 48, MaxImageWidth = 8192, MaxImageHeight = 8192;
 
-        static (int byte2, int byte3, int byte4) CalculateBytesForSizeOrArea(int value)
+        void InitializeHeader()
         {
-            int byte4 = value / 65536;
-            int byte3 = (value % 65536) / 256;
-            int byte2 = value % 256;
-            return (byte2, byte3, byte4);
-        }
 
-        static int CalculateExtraPixels(int width) => (width % 32 == 0) ? 0 : 32 - (width % 32);
+            // BMP Header
+            Header =
+            [
+            0x42, 0x4D, // BM
+            (byte)(Size), (byte)(Size >> 8), (byte)(Size >> 16), (byte)(Size >> 24),
+            0x00, 0x00, 0x00, 0x00, // Reserved
+            0x3E, 0x00, 0x00, 0x00, // Offset (62 bytes)
+            0x28, 0x00, 0x00, 0x00, // DIB header size (40 bytes)
+            (byte)(Width), (byte)(Width >> 8), 0x00, 0x00,
+            (byte)(Height), (byte)(Height >> 8), 0x00, 0x00,
+            0x01, 0x00, // Planes
+            0x01, 0x00, // Bit count (1-bit)
+            0x00, 0x00, 0x00, 0x00, // No compression
+            (byte)(TotalArea), (byte)(TotalArea >> 8), (byte)(TotalArea >> 16), (byte)(TotalArea >> 24),
+            0x13, 0x0B, 0x00, 0x00, // X pixels/m
+            0x13, 0x0B, 0x00, 0x00, // Y pixels/m
+            0x00, 0x00, 0x00, 0x00, // Colors used
+            0x00, 0x00, 0x00, 0x00, // Important colors
+            0x00, 0x00, 0x00, 0x00, // Black
+            0xFF, 0xFF, 0xFF, 0x00 // White
+            ];
+
+            Header.CopyTo(Content, 0);
+        }
 
         void InitializeContent()
         {
-            Content = new byte[Size];
-            byte[] header = GetHeader();
-            header.CopyTo(Content, 0);
-            for (int index = 62; index < Size; index++) Content[index] = 255;
+            Array.Fill(Content, (byte)255, HeaderSize, Size - HeaderSize);
         }
 
         void ProcessSection(Section section)
@@ -184,43 +206,63 @@ namespace CV_2025.CristalVision.Vision
             section.ColorToMonochrome(ref Content);
         }
 
+        void ProcessFullSections()
+        {
+            for (int referenceY = 0; referenceY < Height - Height % SectionSize; referenceY += SectionSize)
+            {
+                for (int referenceX = 0; referenceX < Width - Width % SectionSize; referenceX += SectionSize)
+                {
+                    Section section = new() { Width = SectionSize, Height = SectionSize, ReferenceX = referenceX, ReferenceY = referenceY, Area = 2304, format = Section.Format.Square };
+                    section.SetIndex = () => section.index = HeaderSize + section.chunk + section.ReferenceX / 8 + Chunks * (Height - section.ReferenceY - section.PositionY - 1);
+                    ProcessSection(section);
+                }//48 x 48 → horizontally
+
+            }//48 x 48 ↓ vertically
+        }
+
+        void ProcessRightEdgeSections()
+        {
+            for (int referenceY = 0; referenceY < Height - Height % SectionSize; referenceY += SectionSize)
+            {
+                Section section = new() { Width = FullWidth - Width + Width % SectionSize, Height = SectionSize, ReferenceY = referenceY, FullWidth = FullWidth, Area = (FullWidth - Width + Width % SectionSize) * SectionSize, format = Section.Format.Vertical };
+                section.SetIndex = () => section.index = HeaderSize + section.chunk + (Width - Width % SectionSize) / 8 + Chunks * (Height - section.ReferenceY - section.PositionY - 1);
+                ProcessSection(section);//width ⨯ 48
+            }
+        }
+
+        void ProcessBottomEdge()
+        {
+            for (int referenceX = 0; referenceX < Width - Width % SectionSize; referenceX += SectionSize)
+            {
+                Section section = new() { Width = SectionSize, Height = Height % SectionSize, ReferenceX = referenceX, Area = Height % SectionSize * SectionSize, format = Section.Format.Horizontal };
+                section.SetIndex = () => section.index = HeaderSize + section.chunk + section.ReferenceX / 8 + Chunks * (Height % SectionSize - section.PositionY - 1);
+                ProcessSection(section);
+            }//48 ⨯ height
+        }
+
+        void ProcessRightBottomSection()
+        {
+            Section section = new() { Width = FullWidth - Width + Width % SectionSize, Height = Height % SectionSize, Area = (FullWidth - Width + Width % SectionSize) * (Height % SectionSize), FullWidth = FullWidth, format = Section.Format.Irregular };
+            section.SetIndex = () => section.index = HeaderSize + section.chunk + (Width - Width % SectionSize) / 8 + Chunks * (Height - (Height - Height % SectionSize) - section.PositionY - 1);
+            ProcessSection(section);//width ⨯ height : Right-bottom section
+        }
+
         /// <summary>
         /// Color to black and white based on averge brightness of 48x48 sections
         /// </summary>
         void ProcessSections()
         {
-            Section section;
-
-            for (int referenceY = 0; referenceY < Height - Height % 48; referenceY += 48)
-            {
-                for (int referenceX = 0; referenceX < Width - Width % 48; referenceX += 48)
-                {
-                    section = new() { Width = 48, Height = 48, ReferenceX = referenceX, ReferenceY = referenceY, Area = 2304, format = Section.Format.Square };
-                    section.SetIndex = () => section.index = 62 + section.chunk + section.ReferenceX / 8 + Chunks * (Height - section.ReferenceY - section.PositionY - 1);
-                    ProcessSection(section);
-                }//48 ⨯ 48 →
-
-                section = new() { Width = FullWidth - Width + Width % 48, Height = 48, ReferenceY = referenceY, FullWidth = FullWidth, Area = (FullWidth - Width + Width % 48) * 48, format = Section.Format.Vertical };
-                section.SetIndex = () => section.index = 62 + section.chunk + (Width - Width % 48) / 8 + Chunks * (Height - section.ReferenceY - section.PositionY - 1);
-                ProcessSection(section);//width ⨯ 48
-
-            }//48 ⨯ 48 ↓
-
-            for (int referenceX = 0; referenceX < Width - Width % 48; referenceX += 48)
-            {
-                section = new() { Width = 48, Height = Height % 48, ReferenceX = referenceX, Area = Height % 48 * 48, format = Section.Format.Horizontal };
-                section.SetIndex = () => section.index = 62 + section.chunk + section.ReferenceX / 8 + Chunks * (Height % 48 - section.PositionY - 1);
-                ProcessSection(section);
-            }//48 ⨯ height →
-
-            section = new() { Width = FullWidth - Width + Width % 48, Height = Height % 48, Area = (FullWidth - Width + Width % 48) * (Height % 48), FullWidth = FullWidth, format = Section.Format.Irregular };
-            section.SetIndex = () => section.index = 62 + section.chunk + (Width - Width % 48) / 8 + Chunks * (Height - (Height - Height % 48) - section.PositionY - 1);
-            ProcessSection(section);//width ⨯ height
+            ProcessFullSections();
+            ProcessRightEdgeSections();
+            ProcessBottomEdge();
+            ProcessRightBottomSection();
         }
 
         [SupportedOSPlatform("windows")]
         public Monochrome(Stream? stream)
         {
+            ArgumentNullException.ThrowIfNull(stream);
+
             //┌───────────────────────Check header────────────────────────┐
 
             //└───────────────────────Check header────────────────────────┘
@@ -230,24 +272,19 @@ namespace CV_2025.CristalVision.Vision
             Height = ColorImage.Height;
 
             if (Width > 8192)
-                throw new ArgumentOutOfRangeException(nameof(Width), "Width is out of range (max 8192)");
+                throw new ArgumentOutOfRangeException(nameof(Width), $"Width is out of range (max {MaxImageWidth})");
 
             if (Height > 8192)
-                throw new ArgumentOutOfRangeException(nameof(Height), "Height is out of range (max 8192)");
+                throw new ArgumentOutOfRangeException(nameof(Height), $"Height is out of range (max {MaxImageHeight})");
 
-            ExtraPixels = CalculateExtraPixels(Width);
+            ExtraPixels = (Width % 32 == 0) ? 0 : 32 - (Width % 32);
             TotalArea = (Width + ExtraPixels) * Height;
             FullWidth = Width + ExtraPixels;
             Size = FullWidth / 8 * Height + 62;
             Chunks = FullWidth / 8;
 
-            int byte2, byte3, byte4, byte18, byte19, byte22, byte23, byte34, byte35, byte36;
-
-            (byte18, byte19) = CalculateBytes(Width);
-            (byte22, byte23) = CalculateBytes(Height);
-            (byte2, byte3, byte4) = CalculateBytesForSizeOrArea(Size);
-            (byte34, byte35, byte36) = CalculateBytesForSizeOrArea(TotalArea);
-
+            Content = new byte[Size];
+            InitializeHeader();
             InitializeContent();
             ProcessSections();
         }
@@ -317,8 +354,8 @@ namespace CV_2025.CristalVision.Vision
 
             //┌───────────────────────Write Content───────────────────────┐
             Content = new byte[Size];
-            byte[] header = GetHeader();
-            header.CopyTo(Content, 0);
+            InitializeHeader();
+            Header.CopyTo(Content, 0);
             for (int index = 62; index < Size; index++) Content[index] = 255;
             //└───────────────────────Write Content───────────────────────┘
         }
@@ -378,7 +415,7 @@ namespace CV_2025.CristalVision.Vision
                 throw new Exception("Position out of range");
 
             int chunk = (x - x % 8 + 8) / 8 - 1;
-            int index = Chunks * (Height - y - 1) + chunk + 62;
+            int index = Chunks * (Height - y - 1) + chunk + HeaderSize;
 
             string colors = Convert.ToString(Content[index], 2).PadLeft(8, '0');
             int position = x % 8;
@@ -390,7 +427,7 @@ namespace CV_2025.CristalVision.Vision
         public void SetPixel(int x, int y, byte color)
         {
             int chunk = (x - x % 8 + 8) / 8 - 1;
-            int index = 62 + chunk + Chunks * (Height - y - 1);
+            int index = HeaderSize + chunk + Chunks * (Height - y - 1);
             int position = x % 8;
             byte value = Content[index];
 
@@ -516,33 +553,6 @@ namespace CV_2025.CristalVision.Vision
             }
 
             return document;
-        }
-
-        byte[] GetHeader()
-        {
-            // BMP Header
-            byte[] header =
-            [
-            0x42, 0x4D, // BM
-            (byte)(Size), (byte)(Size >> 8), (byte)(Size >> 16), (byte)(Size >> 24),
-            0x00, 0x00, 0x00, 0x00, // Reserved
-            0x3E, 0x00, 0x00, 0x00, // Offset (62 bytes)
-            0x28, 0x00, 0x00, 0x00, // DIB header size (40 bytes)
-            (byte)(Width), (byte)(Width >> 8), 0x00, 0x00,
-            (byte)(Height), (byte)(Height >> 8), 0x00, 0x00,
-            0x01, 0x00, // Planes
-            0x01, 0x00, // Bit count (1-bit)
-            0x00, 0x00, 0x00, 0x00, // No compression
-            (byte)(TotalArea), (byte)(TotalArea >> 8), (byte)(TotalArea >> 16), (byte)(TotalArea >> 24),
-            0x13, 0x0B, 0x00, 0x00, // X pixels/m
-            0x13, 0x0B, 0x00, 0x00, // Y pixels/m
-            0x00, 0x00, 0x00, 0x00, // Colors used
-            0x00, 0x00, 0x00, 0x00, // Important colors
-            0x00, 0x00, 0x00, 0x00, // Black
-            0xFF, 0xFF, 0xFF, 0x00 // White
-            ];
-
-            return header;
         }
 
         public static int CountBlackPixels(byte[] section)
