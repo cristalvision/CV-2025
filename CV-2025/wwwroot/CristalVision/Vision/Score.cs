@@ -1,4 +1,4 @@
-﻿using CV_2025.CristalVision.Database;
+using CV_2025.CristalVision.Database;
 
 namespace CV_2025.CristalVision.Vision
 {
