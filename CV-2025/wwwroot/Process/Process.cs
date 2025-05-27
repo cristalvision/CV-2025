@@ -44,7 +44,7 @@ namespace CV_2025.wwwroot.Process
             page.GetParagraphs();
             page.GetSections();
 
-            page.database.Close();
+            //page.database.Close();
             //└─────────────Pixels to structures──────────────┘
 
 
