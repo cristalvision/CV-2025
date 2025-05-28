@@ -26,7 +26,7 @@ namespace CV_2025.CristalVision.Vision
         /// <summary>
         /// Distance factor to the next char relative to actual char width
         /// </summary>
-        Dictionary<char, float> distanceFactor = new() { { 'd', 3.7F }, { '/', 1 } };
+        private readonly Dictionary<char, float> distanceFactor = new() { { 'a', 100.0F }, { 'b', 1.0F }, { 'c', 100.0F }, { 'd', 3.7F }, { 'e', 3.7F }, { 'f', 100.0F }, { 'g', 100.0F }, { 'h', 1.0F }, { 'i', 2.1F }, { 'j', 100.0F }, { 'k', 100.0F }, { 'l', 2.1F }, { 'm', 100.0F }, { 'n', 3.5F }, { 'o', 1.0F }, { 'p', 1.0F }, { 'q', 1.0F }, { 'r', 100.0F }, { 's', 100.0F }, { 'ş', 100.0F }, { 't', 100.0F }, { 'ţ', 4.1F }, { 'u', 3.7F }, { 'v', 100.0F }, { 'w', 100.0F }, { 'x', 100.0F }, { 'y', 100.0F }, { 'z', 100.0F }, { 'A', 100.0F }, { 'B', 100.0F }, { 'D', 100.0F }, { 'E', 100.0F }, { 'O', 100.0F }, { 'T', 100.0F }, { 'V', 100.0F }, { 'α', 100.0F }, { '0', 100.0F }, { '2', 100.0F }, { '5', 100.0F }, { '6', 100.0F }, { '(', 100.0F }, { ')', 100.0F }, { ',', 100.0F }, { '/', 100.0F } };
 
         public Page(MemoryStream? memoryStream)
         {
@@ -99,26 +99,23 @@ namespace CV_2025.CristalVision.Vision
         }
 
         /// <summary>
-        /// Assembly characters in words
+        /// Assembly characters in word chunks
         /// </summary>
-        public void GetWords()
+        List<Word>? GetWordChunks()
         {
-            words = [];
+            List<Word>? wordChunks = [];
+            List<Character> knownChars = [.. this.knownChars];
 
             while (knownChars.Count > 0)
             {
                 Character thisChar = knownChars[0];
-                Word word = new();
-                word.value.Add(thisChar.value);
+                Word wordChunk = new();
+                wordChunk.value.Add(thisChar.value);
                 knownChars.Remove(thisChar);
-
-                if (!distanceFactor.ContainsKey(thisChar.value))
-                    break;//<---Remove this block
-
-                float distance = thisChar.Width / distanceFactor[thisChar.value];//Max distance to the next character
 
                 while (thisChar.value != ' ')
                 {
+                    float distance = thisChar.Width / distanceFactor[thisChar.value];//Max distance to the next character
                     List<Character> charsToRight = [.. knownChars.Where(character => character.Left < thisChar.Right + distance && character.Left > thisChar.Right)];
                     List<Character> nextChars = [.. charsToRight.Where(character => character.Top < thisChar.Bottom && character.Bottom > thisChar.Top)];
 
@@ -127,13 +124,23 @@ namespace CV_2025.CristalVision.Vision
                     if (nextChar.value == ' ')
                         break;
 
-                    word.value.Add(nextChar.value);
+                    wordChunk.value.Add(nextChar.value);
                     knownChars.Remove(nextChar);
                     thisChar = nextChar;
                 }
 
-                words.Add(word);
+                wordChunks.Add(wordChunk);
             }
+
+            return wordChunks;
+        }
+
+        public void GetWords()
+        {
+            List<Word>? wordChunks = GetWordChunks();
+            List<Word>? words = [];
+
+
         }
 
         /// <summary>
@@ -216,7 +223,7 @@ namespace CV_2025.CristalVision.Vision
             document.AppendChild(svg);
 
             //┌─────────Color first unknown character─────────┐
-            List<Character> displayChars = [knownChars[0], knownChars[12]];
+            List<Character> displayChars = [knownChars[0], knownChars[4]];
             char firstChar = displayChars[0].value;//d
             int right = displayChars[0].Right;//707
             int width = displayChars[0].Width;//30
