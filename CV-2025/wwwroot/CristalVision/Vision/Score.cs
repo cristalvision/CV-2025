@@ -73,7 +73,7 @@ namespace CV_2025.CristalVision.Vision
                 byte22 = Height;
             }
 
-            if (Height > 8192)
+            if (Height > Monochrome.MaxImageHeight)
                 throw new Exception("Height out of range");
             //└───────────────────────Image Height────────────────────────┘
 
