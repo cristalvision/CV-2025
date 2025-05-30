@@ -119,6 +119,10 @@ namespace CV_2025.CristalVision.Vision
     [SupportedOSPlatform("windows")]
     public class Monochrome
     {
+        public const int MaxImageWidth = 8192;
+        public const int MaxImageHeight = 8192;
+        const int HeaderSize = 62, SectionSize = 48;
+
         public Bitmap ColorImage;
 
         byte[] Header;
@@ -162,8 +166,6 @@ namespace CV_2025.CristalVision.Vision
         /// Image file as bytes
         /// </summary>
         public byte[] Content;
-
-        const int HeaderSize = 62, SectionSize = 48, MaxImageWidth = 8192, MaxImageHeight = 8192;
 
         void InitializeHeader()
         {
@@ -269,10 +271,10 @@ namespace CV_2025.CristalVision.Vision
             Width = ColorImage.Width;
             Height = ColorImage.Height;
 
-            if (Width > 8192)
+            if (Width > MaxImageWidth)
                 throw new ArgumentOutOfRangeException(nameof(Width), $"Width is out of range (max {MaxImageWidth})");
 
-            if (Height > 8192)
+            if (Height > MaxImageHeight)
                 throw new ArgumentOutOfRangeException(nameof(Height), $"Height is out of range (max {MaxImageHeight})");
 
             ExtraPixels = (Width % 32 == 0) ? 0 : 32 - (Width % 32);
@@ -301,7 +303,7 @@ namespace CV_2025.CristalVision.Vision
             {
                 byte18 = Width;
             }
-            if (Width > 8192)
+            if (Width > MaxImageWidth)
                 throw new Exception("Widh out of range");
             //└────────────────────────Image width────────────────────────┘
 
@@ -319,7 +321,7 @@ namespace CV_2025.CristalVision.Vision
                 byte22 = Height;
             }
 
-            if (Height > 8192)
+            if (Height > MaxImageHeight)
                 throw new Exception("Height out of range");
             //└───────────────────────Image Height────────────────────────┘
 
@@ -373,7 +375,7 @@ namespace CV_2025.CristalVision.Vision
             string byte19 = Convert.ToString(Content[19], 2).PadLeft(8, '0');
             Width = Convert.ToInt32(byte19 + byte18, 2);
 
-            if (Width > 8192)
+            if (Width > MaxImageWidth)
                 throw new Exception("Widh out of range");
             //└────────────────────────Image width────────────────────────┘
 
@@ -383,7 +385,7 @@ namespace CV_2025.CristalVision.Vision
             string byte23 = Convert.ToString(Content[23], 2).PadLeft(8, '0');
             Height = Convert.ToInt32(byte23 + byte22, 2);
 
-            if (Height > 8192)
+            if (Height > MaxImageHeight)
                 throw new Exception("Height out of range");
             //└───────────────────────Image Height────────────────────────┘
 
@@ -571,6 +573,9 @@ namespace CV_2025.CristalVision.Vision
 
     public class Bitmap256
     {
+        public const int MaxImageWidth = 8192;
+        public const int MaxImageHeight = 8192;
+
         public Bitmap ColorImage { get; }
 
         /// <summary>
@@ -624,7 +629,7 @@ namespace CV_2025.CristalVision.Vision
             {
                 byte18 = Width;
             }
-            if (Width > 8192)
+            if (Width > MaxImageWidth)
                 throw new Exception("Widh out of range");
             //└────────────────────────Image width────────────────────────┘
 
@@ -642,7 +647,7 @@ namespace CV_2025.CristalVision.Vision
                 byte22 = Height;
             }
 
-            if (Height > 8192)
+            if (Height > MaxImageHeight)
                 throw new Exception("Height out of range");
             //└───────────────────────Image Height────────────────────────┘
 
@@ -755,7 +760,7 @@ namespace CV_2025.CristalVision.Vision
             {
                 byte18 = Width;
             }
-            if (Width > 8192)
+            if (Width > MaxImageWidth)
                 throw new Exception("Widh out of range");
             //└────────────────────────Image width────────────────────────┘
 
@@ -773,7 +778,7 @@ namespace CV_2025.CristalVision.Vision
                 byte22 = Height;
             }
 
-            if (Height > 8192)
+            if (Height > MaxImageHeight)
                 throw new Exception("Height out of range");
             //└───────────────────────Image Height────────────────────────┘
 
