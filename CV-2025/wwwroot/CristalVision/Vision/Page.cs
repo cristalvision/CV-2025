@@ -1,5 +1,4 @@
 using CV_2025.CristalVision.Database;
-using System.Drawing;
 using System.Runtime.Versioning;
 using System.Xml;
 
@@ -58,28 +57,38 @@ namespace CV_2025.CristalVision.Vision
             public static Character GetFirstChar(List<Character> knownChars)
             {
                 Character reference = knownChars[0];
-                
-                Character firstChar = new();
-                while (firstChar.value != '␀')
+
+                Character prevChar = new();
+                while (prevChar.value != '␀')
                 {
-                    float distance = reference.Width / distanceFactor[reference.value];//Max distance to the previous character
-                    List<Character> charsToLeft = [.. knownChars.Where(character => character.Right > reference.Left - distance && character.Right < reference.Left)];
+                    List<Character> charsToLeft = [.. knownChars.Where(character => character.Right < reference.Right)];
                     List<Character> prevChars = [.. charsToLeft.Where(character => character.Top < reference.Bottom && character.Bottom > reference.Top)];
 
-                    firstChar = (prevChars.Count > 0) ? prevChars[0] : new Character() { value = '␀' };
-
-                    if (firstChar.value != '␀')
+                    int distance = 0;
+                    foreach (Character character in prevChars)
                     {
-                        reference = firstChar;
+                        if (character.Right > distance)
+                        {
+                            distance = character.Right;
+                            prevChar = character;
+                        }
+                    }
+
+                    if (prevChars.Count == 0) prevChar.value = '␀';
+                    if (reference.Left - prevChar.Right > 10) prevChar.value = '␀';
+
+                    if (prevChar.value != '␀')
+                    {
+                        reference = prevChar;
                     }//Word continues to the left
                     else
                     {
-                        firstChar = reference;
+                        prevChar = reference;
                         break;
                     }//Start of word
                 }
 
-                return firstChar;
+                return prevChar;
             }
 
             /// <summary>
@@ -90,23 +99,25 @@ namespace CV_2025.CristalVision.Vision
                 Word word = new() { Top = reference.Top, Left = reference.Left, Right = reference.Right, Bottom = reference.Bottom };
                 word.Characters.Add(reference);
                 word.value.Add(reference.value);
-                knownChars.Remove(reference);
 
                 Character nextChar = new();
                 while (nextChar.value != '␀')
                 {
-                    //float distance = reference.Width / distanceFactor[reference.value];//Max distance to the next character
-                    int distance = 10;
-                    List<Character> charsToRight = [.. knownChars.Where(character => character.Left < reference.Right + distance && character.Left > reference.Right)];
+                    List<Character> charsToRight = [.. knownChars.Where(character => character.Left > reference.Left)];
                     List<Character> nextChars = [.. charsToRight.Where(character => character.Top < reference.Bottom && character.Bottom > reference.Top)];
 
-                    if (nextChars.Count == 0)
+                    int distance = Bitmap256.MaxImageWidth;
+                    foreach (Character character in nextChars)
                     {
-                        charsToRight = [.. knownChars.Where(character => character.Left == reference.Right || character.Left == reference.Right - 1 || character.Left == reference.Right - 2 || character.Left == reference.Right - 3)];
-                        nextChars = [.. charsToRight.Where(character => character.Top < reference.Bottom && character.Bottom > reference.Top)];
+                        if (character.Left > reference.Left && character.Left < distance)
+                        {
+                            distance = character.Left;
+                            nextChar = character;
+                        }
                     }
 
-                    nextChar = (nextChars.Count > 0) ? nextChars[0] : new Character() { value = '␀' };
+                    if (nextChars.Count == 0) nextChar.value = '␀';
+                    if (nextChar.Left - reference.Right > 10) nextChar.value = '␀';
 
                     if (nextChar.value == '␀')
                         break;
@@ -117,10 +128,12 @@ namespace CV_2025.CristalVision.Vision
 
                     word.Characters.Add(nextChar);
                     word.value.Add(nextChar.value);
-                    knownChars.Remove(nextChar);
                     reference = nextChar;
                 }
 
+                foreach (Character character in word.Characters)
+                    knownChars.Remove(character);
+                
                 return word;
             }
         }
