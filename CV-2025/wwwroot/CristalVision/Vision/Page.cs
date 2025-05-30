@@ -32,6 +32,10 @@ namespace CV_2025.CristalVision.Vision
         {
             monochrome = new(memoryStream);
             bitmap256 = new(memoryStream);
+
+            Characters = new(bitmap256);
+            Shapes = new Shapes(monochrome);
+            Table = new Tables(monochrome);
         }
 
         public struct Word()
@@ -157,12 +161,11 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetCharacters()
         {
-            Characters = new(bitmap256);
-            List<Character> characters = Characters.GetText();
+            List<Character> characters = Characters.GetCharacters();
             Characters.database.Close();
 
-            unknownChars = [.. characters.Where(character => character.Width > 7 && character.Height > 15 && character.value == '␀')];
-            knownChars = [.. characters.Where(character => character.Width > 7 && character.Height > 15 && character.value != '␀')];
+            unknownChars = [.. characters.Where(character => character.value == '␀')];
+            knownChars = [.. characters.Where(character => character.value != '␀')];
         }
 
         /// <summary>
@@ -178,7 +181,12 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetEquations()
         {
+            List<Character>? knownChars = [.. this.knownChars];
 
+            if (knownChars == null)
+                return;
+
+            List<Equation> equations = Equations.GetFractions(unknownChars, knownChars);
         }
 
         /// <summary>
