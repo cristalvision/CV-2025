@@ -8,7 +8,7 @@ namespace CV_2025.CristalVision.Vision
         /// <summary>
         /// Relative positions to the image
         /// </summary>
-        public int Top = 8192, Bottom = 0, Right = 0, Left = 8192;
+        public int Top = Bitmap256.MaxImageHeight, Bottom = 0, Right = 0, Left = Bitmap256.MaxImageWidth;
 
         /// <summary>
         /// Database width is based on 50px height
@@ -66,7 +66,7 @@ namespace CV_2025.CristalVision.Vision
         /// <summary>
         /// Relative positions to the image
         /// </summary>
-        public int Top = 8192, Bottom = 0, Right = 0, Left = 8192;
+        public int Top = Vision.Bitmap256.MaxImageHeight, Bottom = 0, Right = 0, Left = Vision.Bitmap256.MaxImageWidth;
 
         /// <summary>
         /// H WB | V WB | V BW | H BW
