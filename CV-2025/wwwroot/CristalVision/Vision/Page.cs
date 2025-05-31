@@ -1,4 +1,5 @@
 using CV_2025.CristalVision.Database;
+using System.Collections.Generic;
 using System.Runtime.Versioning;
 using System.Xml;
 
@@ -18,6 +19,7 @@ namespace CV_2025.CristalVision.Vision
 
         public List<Character> knownChars = [], unknownChars = [];
         public List<Word>? words;
+        public List<Row>? rows;
         public List<Shape>? shapes = [];
         public List<Equation>? equations = [];
         public List<Table>? tables = [];
@@ -48,7 +50,7 @@ namespace CV_2025.CristalVision.Vision
             /// <summary>
             /// List of characters representing this word
             /// </summary>
-            public List<char> value = [];
+            public string value = String.Empty;
 
             /// <summary>
             /// List of Characters representing this word
@@ -102,7 +104,112 @@ namespace CV_2025.CristalVision.Vision
             {
                 Word word = new() { Top = reference.Top, Left = reference.Left, Right = reference.Right, Bottom = reference.Bottom };
                 word.Characters.Add(reference);
-                word.value.Add(reference.value);
+                word.value += reference.value;
+
+                Character nextChar = new();
+                while (nextChar.value != '␀')
+                {
+                    List<Character> charsToRight = [.. knownChars.Where(character => character.Left > reference.Left)];
+                    List<Character> nextChars = [.. charsToRight.Where(character => character.Top < reference.Bottom && character.Bottom > reference.Top)];
+
+                    int distance = Bitmap256.MaxImageWidth;
+                    foreach (Character character in nextChars)
+                    {
+                        if (character.Left > reference.Left && character.Left < distance)
+                        {
+                            distance = character.Left;
+                            nextChar = character;
+                        }
+                    }
+
+                    if (nextChars.Count == 0) nextChar.value = '␀';
+                    if (nextChar.Left - reference.Right > 10) nextChar.value = '␀';
+
+                    if (nextChar.value == '␀')
+                        break;
+
+                    if (nextChar.Top < word.Top) word.Top = nextChar.Top;
+                    if (nextChar.Bottom > word.Bottom) word.Bottom = nextChar.Bottom;
+                    word.Right = nextChar.Right;
+
+                    word.Characters.Add(nextChar);
+                    word.value += nextChar.value;
+                    reference = nextChar;
+                }
+
+                foreach (Character character in word.Characters)
+                    knownChars.Remove(character);
+                
+                return word;
+            }
+        }
+
+        public struct Row()
+        {
+            /// <summary>
+            /// Relative positions to the image
+            /// </summary>
+            public int Top, Bottom, Left, Right;
+
+            /// <summary>
+            /// List of words representing this row
+            /// </summary>
+            public string value = String.Empty;
+
+            /// <summary>
+            /// List of Words/Equantions representing this row
+            /// </summary>
+            public List<Word> Words = [];
+
+            /// <summary>
+            /// Get first word character relative to the reference
+            /// </summary>
+            public static Word GetFirstWord(List<Word> knownWords)
+            {
+                Word reference = knownWords[0];
+
+                Word prevWord = new();
+                while (prevWord.value != null)
+                {
+                    List<Word> wordsToLeft = [.. knownWords.Where(word => word.Right < reference.Right)];
+                    List<Word> prevWords = [.. wordsToLeft.Where(word => word.Top < reference.Bottom && word.Bottom > reference.Top)];
+
+                    int distance = 0;
+                    foreach (Word word in prevWords)
+                    {
+                        if (word.Right > distance)
+                        {
+                            distance = word.Right;
+                            prevWord = word;
+                        }
+                    }
+
+                    if (prevWords.Count == 0) prevWord.value = null;
+                    //if (reference.Left - prevWord.Right > 10) prevWord.value = null;
+
+                    if (prevWord.value != null)
+                    {
+                        reference = prevWord;
+                    }//Word continues to the left
+                    else
+                    {
+                        prevWord = reference;
+                        break;
+                    }//Start of word
+                }
+
+                return prevWord;
+            }
+
+            /// <summary>
+            /// Assembly characters in word chunks : loop to the right from reference
+            /// </summary>
+            public static Row GetRow(Word reference, List<Word> knownWords)
+            {
+
+                /*Row row = new() { Top = reference.Top, Left = reference.Left, Right = reference.Right, Bottom = reference.Bottom };
+                row.Words.Add(reference);
+                row.value.Add(reference.value);
 
                 Character nextChar = new();
                 while (nextChar.value != '␀')
@@ -137,13 +244,11 @@ namespace CV_2025.CristalVision.Vision
 
                 foreach (Character character in word.Characters)
                     knownChars.Remove(character);
-                
-                return word;
-            }
-        }
-        public struct Row
-        {
 
+                return word;*/
+
+                return new Row();
+            }
         }
 
         public struct Paragraph
@@ -181,12 +286,11 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetEquations()
         {
-            List<Character>? knownChars = [.. this.knownChars];
-
             if (knownChars == null)
                 return;
 
-            List<Equation> equations = Equations.GetFractions(unknownChars, knownChars);
+            List<Fraction> fractions = Equations.GetFractions(unknownChars, knownChars);
+            equations.Add(fractions[0]);
         }
 
         /// <summary>
@@ -202,8 +306,6 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetWords()
         {
-            List<Character>? knownChars = [.. this.knownChars];
-            
             if (knownChars == null)
                 return;
 
@@ -214,7 +316,6 @@ namespace CV_2025.CristalVision.Vision
                 Word word = Word.GetWord(firstChar, knownChars);
                 words.Add(word);
             }
-
         }
 
         /// <summary>
@@ -222,7 +323,22 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetRows()
         {
+            if (words == null)
+                return;
 
+            rows = [];
+            while (words.Count > 0)
+            {
+                Word firstWord = Row.GetFirstWord(words);
+                //Word firstEquation = Row.GetFirstEquation(equations);
+                Row row = Row.GetRow(firstWord, words);
+                //rows.Add(row);
+
+                List<Object> rowTest = [];
+                rowTest.Add(firstWord);
+                rowTest.Add(equations[0]);
+            }
+            
         }
 
         /// <summary>
@@ -260,21 +376,21 @@ namespace CV_2025.CristalVision.Vision
             svg.SetAttribute("style", "background: LightSkyBlue");
 
 
-            foreach (Character character in knownChars)
+            foreach (Word word in words)
             {
                 XmlElement text = document.CreateElement("text");
-                text.SetAttribute("x", character.Left.ToString());
-                text.SetAttribute("y", character.Bottom.ToString());
+                text.SetAttribute("x", word.Left.ToString());
+                text.SetAttribute("y", word.Bottom.ToString());
                 text.SetAttribute("fill", "black");
                 text.SetAttribute("font-size", "50px");
                 text.SetAttribute("fill", "darkblue");
-                text.InnerText = character.value.ToString();
+                text.InnerText = word.value;
                 svg.AppendChild(text);
 
             }//Place known characters as text
 
 
-            foreach (Character character in unknownChars)
+            /*foreach (Character character in unknownChars)
             {
                 for (int y = character.Top; y < character.Bottom; y++)
                 {
@@ -292,7 +408,7 @@ namespace CV_2025.CristalVision.Vision
                         svg.AppendChild(rect);
                     }
                 }
-            }//Place unknown characters as rectangle pixels
+            }//Place unknown characters as rectangle pixels*/
 
             document.AppendChild(svg);
 
@@ -314,7 +430,7 @@ namespace CV_2025.CristalVision.Vision
             //└────────Outline first unknown character────────┘
 
             //┌─────────────────Outline words─────────────────┐
-            foreach (Word word in words)
+            /*foreach (Word word in words)
             {
                 int width = word.Right - word.Left;
                 int height = word.Bottom - word.Top;
@@ -328,7 +444,7 @@ namespace CV_2025.CristalVision.Vision
                 rectangle.SetAttribute("stroke", "darkblue");
                 rectangle.InnerText = word.value.ToString();
                 document.ChildNodes[1].AppendChild(rectangle);
-            }
+            }*/
             //└─────────────────Outline words─────────────────┘
 
             if (unknownChars.Count == 0)
