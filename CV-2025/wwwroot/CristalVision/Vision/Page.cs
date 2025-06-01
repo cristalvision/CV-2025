@@ -159,7 +159,7 @@ namespace CV_2025.CristalVision.Vision
             /// <summary>
             /// List of Words/Equantions representing this row
             /// </summary>
-            public List<Word> Words = [];
+            public List<Object> Objects = [];
 
             /// <summary>
             /// Get first word character relative to the reference
@@ -207,47 +207,47 @@ namespace CV_2025.CristalVision.Vision
             public static Row GetRow(Word reference, List<Word> knownWords)
             {
 
-                /*Row row = new() { Top = reference.Top, Left = reference.Left, Right = reference.Right, Bottom = reference.Bottom };
-                row.Words.Add(reference);
-                row.value.Add(reference.value);
+                Row row = new() { Top = reference.Top, Left = reference.Left, Right = reference.Right, Bottom = reference.Bottom };
+                row.Objects.Add(reference);
+                row.value = reference.value;
 
-                Character nextChar = new();
-                while (nextChar.value != '␀')
+                Word nextWord = new();
+                while (nextWord.value != null)
                 {
-                    List<Character> charsToRight = [.. knownChars.Where(character => character.Left > reference.Left)];
-                    List<Character> nextChars = [.. charsToRight.Where(character => character.Top < reference.Bottom && character.Bottom > reference.Top)];
+                    List<Word> charsToRight = [.. knownWords.Where(word => word.Left > reference.Characters.Last().Left)];
+                    List<Word> nextWords = [.. charsToRight.Where(word => word.Characters.First().Top < reference.Characters.Last().Bottom && word.Characters.First().Bottom > reference.Characters.Last().Top)];
 
                     int distance = Bitmap256.MaxImageWidth;
-                    foreach (Character character in nextChars)
+                    foreach (Word word in nextWords)
                     {
-                        if (character.Left > reference.Left && character.Left < distance)
+                        if (word.Left > reference.Left && word.Left < distance)
                         {
-                            distance = character.Left;
-                            nextChar = character;
+                            distance = word.Left;
+                            nextWord = word;
                         }
                     }
 
-                    if (nextChars.Count == 0) nextChar.value = '␀';
-                    if (nextChar.Left - reference.Right > 10) nextChar.value = '␀';
+                    if (nextWords.Count == 0) nextWord.value = null;
+                    //if (nextWord.Characters.First().Left - reference.Characters.Last().Right > 10) nextWord.value = null;
 
-                    if (nextChar.value == '␀')
+                    if (nextWord.value == null)
                         break;
 
-                    if (nextChar.Top < word.Top) word.Top = nextChar.Top;
-                    if (nextChar.Bottom > word.Bottom) word.Bottom = nextChar.Bottom;
-                    word.Right = nextChar.Right;
+                    if (nextWord.Top < row.Top) row.Top = nextWord.Top;
+                    if (nextWord.Bottom > row.Bottom) row.Bottom = nextWord.Bottom;
+                    row.Right = nextWord.Right;
 
-                    word.Characters.Add(nextChar);
-                    word.value.Add(nextChar.value);
-                    reference = nextChar;
+                    row.Objects.Add(nextWord);
+                    row.value += " " +  nextWord.value;
+                    reference = nextWord;
                 }
 
-                foreach (Character character in word.Characters)
-                    knownChars.Remove(character);
+                foreach (Word word in row.Objects)
+                {
+                    knownWords.Remove(word);
+                }
 
-                return word;*/
-
-                return new Row();
+                return row;
             }
         }
 
@@ -332,13 +332,8 @@ namespace CV_2025.CristalVision.Vision
                 Word firstWord = Row.GetFirstWord(words);
                 //Word firstEquation = Row.GetFirstEquation(equations);
                 Row row = Row.GetRow(firstWord, words);
-                //rows.Add(row);
-
-                List<Object> rowTest = [];
-                rowTest.Add(firstWord);
-                rowTest.Add(equations[0]);
+                rows.Add(row);
             }
-            
         }
 
         /// <summary>
