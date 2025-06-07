@@ -1,9 +1,9 @@
 using CV_2025.CristalVision.Vision;
+using CV_2025.wwwroot.CristalVision.Output;
 using System.IO.MemoryMappedFiles;
 using System.Net.WebSockets;
 using System.Runtime.Versioning;
 using System.Text.Json;
-using System.Xml;
 
 namespace CV_2025.wwwroot.Process
 {
@@ -25,14 +25,14 @@ namespace CV_2025.wwwroot.Process
             mappedFile = MemoryMappedFile.OpenExisting(mapName, MemoryMappedFileRights.ReadWrite);
             viewStream = mappedFile.CreateViewStream();
 
-            memoryStream = new();
+            MemoryStream memoryStream = new();
             viewStream.CopyTo(memoryStream);
             //└──────────────────Read stream──────────────────┘
 
 
             //┌─────────────Pixels to structures──────────────┐
             page = new(memoryStream);
-
+            
             await UpdateProgress("Get Text", 30);
             page.GetCharacters();
             page.GetShapes();
@@ -51,21 +51,18 @@ namespace CV_2025.wwwroot.Process
             //┌─────────────────Bitmap to SVG─────────────────┐
             await UpdateProgress("SVG", 30);
             page.Characters = new(page.bitmap256);//All characters have been removed
-            XmlDocument document = page.ToSVG();
+            SVG SVG = new(page);
+            memoryStream = SVG.ToMemeoryStream(mapName);
+
+            PDF PDF = new PDF(page);
+            PDF.Save();
+
+            Word word = new Word(page);
+            word.Save();
             //└─────────────────Bitmap to SVG─────────────────┘
 
-
-            //┌─────────────────SVG to Stream─────────────────┐
-            memoryStream = new();
-            document.Save(memoryStream);
-
-            int length = (int)memoryStream.Length;
-            mappedFile = MemoryMappedFile.CreateNew(mapName + " - SVG", length);
-            viewStream = mappedFile.CreateViewStream();
-            await viewStream.WriteAsync(memoryStream.ToArray().AsMemory(0, length));
-            //└─────────────────SVG to Stream─────────────────┘
-
-            byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(new dynamic[2] { "Start", "Image/Display?Name=" + mapName + " - SVG&contentType=image/svg+xml&length=" + length });
+            byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(new dynamic[2] { "Start", "Image/Display?Name=" + mapName + " - SVG&contentType=image/svg+xml&length=" + memoryStream.Length });
+            //byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(new dynamic[2] { "Start", "Image/Display?Name=" + mapName + " - SVG&contentType=application/pdf&length=" + length });
             await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
         }
 
