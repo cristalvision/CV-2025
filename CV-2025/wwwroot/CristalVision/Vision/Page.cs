@@ -1,5 +1,4 @@
 using CV_2025.CristalVision.Database;
-using System.Collections.Generic;
 using System.Runtime.Versioning;
 using System.Xml;
 
@@ -171,8 +170,8 @@ namespace CV_2025.CristalVision.Vision
                 Word prevWord = new();
                 while (prevWord.value != null)
                 {
-                    List<Word> wordsToLeft = [.. knownWords.Where(word => word.Right < reference.Right)];
-                    List<Word> prevWords = [.. wordsToLeft.Where(word => word.Top < reference.Bottom && word.Bottom > reference.Top)];
+                    List<Word> wordsToLeft = [.. knownWords.Where(word => word.Characters.Last().Right < reference.Characters.First().Right)];
+                    List<Word> prevWords = [.. wordsToLeft.Where(word => word.Characters.Last().Top < reference.Characters.First().Bottom && word.Characters.Last().Bottom > reference.Characters.Last().Top)];
 
                     int distance = 0;
                     foreach (Word word in prevWords)
@@ -185,8 +184,7 @@ namespace CV_2025.CristalVision.Vision
                     }
 
                     if (prevWords.Count == 0) prevWord.value = null;
-                    //if (reference.Left - prevWord.Right > 10) prevWord.value = null;
-
+                    
                     if (prevWord.value != null)
                     {
                         reference = prevWord;
@@ -206,11 +204,8 @@ namespace CV_2025.CristalVision.Vision
             /// </summary>
             public static Row GetRow(Word reference, List<Word> knownWords)
             {
-
-                Row row = new() { Top = reference.Top, Left = reference.Left, Right = reference.Right, Bottom = reference.Bottom };
-                row.Objects.Add(reference);
-                row.value = reference.value;
-
+                Row row = new() { Top = reference.Top, Left = reference.Left, Bottom = reference.Bottom, Objects = [reference], value = reference.value };
+                
                 Word nextWord = new();
                 while (nextWord.value != null)
                 {
@@ -232,10 +227,6 @@ namespace CV_2025.CristalVision.Vision
 
                     if (nextWord.value == null)
                         break;
-
-                    if (nextWord.Top < row.Top) row.Top = nextWord.Top;
-                    if (nextWord.Bottom > row.Bottom) row.Bottom = nextWord.Bottom;
-                    row.Right = nextWord.Right;
 
                     row.Objects.Add(nextWord);
                     row.value += " " +  nextWord.value;
@@ -334,6 +325,8 @@ namespace CV_2025.CristalVision.Vision
                 Row row = Row.GetRow(firstWord, words);
                 rows.Add(row);
             }
+
+            rows.Sort((character, reference) => character.Top.CompareTo(reference.Top));
         }
 
         /// <summary>
@@ -352,115 +345,7 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetSections()
         {
-
-        }
-
-        /// <summary>
-        /// Place characters/shapes/equations/tables on SVG
-        /// </summary>
-        public XmlDocument ToSVG()
-        {
-            XmlDocument document = new XmlDocument();
-            document.AppendChild(document.CreateXmlDeclaration("1.0", "UTF-8", "no"));
-
-            XmlElement svg = document.CreateElement("svg");
-            svg.SetAttribute("viewBox", "0 0 " + bitmap256.Width + " " + bitmap256.Height);
-            svg.SetAttribute("version", "1.1");
-            svg.SetAttribute("xmlns", "http://www.w3.org/2000/svg");
-            svg.SetAttribute("xmlns:svg", "http://www.w3.org/2000/svg");
-            svg.SetAttribute("style", "background: LightSkyBlue");
-
-
-            foreach (Word word in words)
-            {
-                XmlElement text = document.CreateElement("text");
-                text.SetAttribute("x", word.Left.ToString());
-                text.SetAttribute("y", word.Bottom.ToString());
-                text.SetAttribute("fill", "black");
-                text.SetAttribute("font-size", "50px");
-                text.SetAttribute("fill", "darkblue");
-                text.InnerText = word.value;
-                svg.AppendChild(text);
-
-            }//Place known characters as text
-
-
-            /*foreach (Character character in unknownChars)
-            {
-                for (int y = character.Top; y < character.Bottom; y++)
-                {
-                    for (int x = character.Left; x < character.Right; x++)
-                    {
-                        int color = bitmap256.GetPixel(x, y);
-                        if (color == 255) continue;
-
-                        XmlElement rect = document.CreateElement("rect");
-                        rect.SetAttribute("width", "1");
-                        rect.SetAttribute("height", "1");
-                        rect.SetAttribute("x", x.ToString());
-                        rect.SetAttribute("y", y.ToString());
-                        rect.SetAttribute("fill", "black");
-                        svg.AppendChild(rect);
-                    }
-                }
-            }//Place unknown characters as rectangle pixels*/
-
-            document.AppendChild(svg);
-
-            //┌────────Outline first unknown character────────┐
-            /*List<Character> displayChars = [knownChars[0], knownChars[4]];
-
-            foreach (Character character in displayChars)
-            {
-                XmlElement rectangle = document.CreateElement("rect");
-                rectangle.SetAttribute("x", character.Left.ToString());
-                rectangle.SetAttribute("y", character.Top.ToString());
-                rectangle.SetAttribute("width", character.Width.ToString());
-                rectangle.SetAttribute("height", character.Height.ToString());
-                rectangle.SetAttribute("fill", "transparent");
-                rectangle.SetAttribute("stroke", "darkblue");
-                rectangle.InnerText = character.value.ToString();
-                document.ChildNodes[1].AppendChild(rectangle);
-            }*/
-            //└────────Outline first unknown character────────┘
-
-            //┌─────────────────Outline words─────────────────┐
-            /*foreach (Word word in words)
-            {
-                int width = word.Right - word.Left;
-                int height = word.Bottom - word.Top;
-
-                XmlElement rectangle = document.CreateElement("rect");
-                rectangle.SetAttribute("x", word.Left.ToString());
-                rectangle.SetAttribute("y", word.Top.ToString());
-                rectangle.SetAttribute("width", width.ToString());
-                rectangle.SetAttribute("height", height.ToString());
-                rectangle.SetAttribute("fill", "transparent");
-                rectangle.SetAttribute("stroke", "darkblue");
-                rectangle.InnerText = word.value.ToString();
-                document.ChildNodes[1].AppendChild(rectangle);
-            }*/
-            //└─────────────────Outline words─────────────────┘
-
-            if (unknownChars.Count == 0)
-                return document;
             
-            //┌─────────Color first unknown character─────────┐
-            /*Character character1 = unknownChars[0];
-            XmlElement rectangle = document.CreateElement("rect");
-            rectangle.SetAttribute("x", character1.Left.ToString());
-            rectangle.SetAttribute("y", character1.Top.ToString());
-            rectangle.SetAttribute("width", character1.Width.ToString());
-            rectangle.SetAttribute("height", character1.Height.ToString());
-            rectangle.SetAttribute("fill", "transparent");
-            rectangle.SetAttribute("stroke", "darkblue");
-            rectangle.InnerText = character1.value.ToString();
-            document.ChildNodes[1].AppendChild(rectangle);*/
-            //└─────────Color first unknown character─────────┘
-
-            document.AppendChild(document.ChildNodes[1]);
-
-            return document;
         }
     }
 }
