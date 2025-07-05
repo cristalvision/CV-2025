@@ -1,21 +1,21 @@
 using CV_2025.CristalVision.Database;
+using System.Data;
 using System.Runtime.Versioning;
-using System.Xml;
 
 namespace CV_2025.CristalVision.Vision
 {
     [SupportedOSPlatform("windows")]
     public class Page
     {
-        Monochrome monochrome;
+        public Monochrome monochrome;
         public Bitmap256 bitmap256;
-        public Access database;
-
+        public CVDatabase database;
+        
         public Characters? Characters;
         Shapes? Shapes;
         Equations? Equations;
         Tables? Table;
-
+        
         public List<Character> knownChars = [], unknownChars = [];
         public List<Word>? words;
         public List<Row>? rows;
@@ -29,14 +29,16 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         static Dictionary<char, float> distanceFactor = new() { { 'a', 3.0F }, { 'b', 1.0F }, { 'c', 100.0F }, { 'd', 3.7F }, { 'e', 3.7F }, { 'f', 100.0F }, { 'g', 100.0F }, { 'h', 1.0F }, { 'i', 2.1F }, { 'j', 100.0F }, { 'k', 100.0F }, { 'l', 2.1F }, { 'm', 100.0F }, { 'n', 3.5F }, { 'o', 3.5F }, { 'p', 3.5F }, { 'q', 1.0F }, { 'r', 2.1F }, { 's', 100.0F }, { 'ş', 100.0F }, { 't', 2.0F }, { 'ţ', 4.1F }, { 'u', 3.7F }, { 'v', 100.0F }, { 'w', 100.0F }, { 'x', 100.0F }, { 'y', 100.0F }, { 'z', 3.7F }, { 'A', 100.0F }, { 'B', 100.0F }, { 'D', 100.0F }, { 'E', 100.0F }, { 'O', 100.0F }, { 'T', 100.0F }, { 'V', 100.0F }, { 'α', 100.0F }, { '0', 100.0F }, { '2', 100.0F }, { '5', 100.0F }, { '6', 100.0F }, { '(', 100.0F }, { ')', 100.0F }, { ',', 100.0F }, { '/', 100.0F } };
 
-        public Page(MemoryStream? memoryStream)
+        /// <summary>
+        /// Source: Image can be stream or string
+        /// </summary>
+        public Page(dynamic source, CVDatabase.Type DBType, string connectionString)
         {
-            monochrome = new(memoryStream);
-            bitmap256 = new(memoryStream);
+            bitmap256 = new(source);
+            CVDatabase.type = DBType;
+            CVDatabase.connectionString = connectionString;
 
-            Characters = new(bitmap256);
-            Shapes = new Shapes(monochrome);
-            Table = new Tables(monochrome);
+            Characters = new(this);
         }
 
         public struct Word()
@@ -269,7 +271,7 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public void GetShapes()
         {
-            Shapes = new(monochrome);
+            Shapes = new(this);
         }
 
         /// <summary>
