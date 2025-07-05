@@ -259,6 +259,37 @@ namespace CV_2025.CristalVision.Vision
         }
 
         [SupportedOSPlatform("windows")]
+        public Monochrome(string absolutePath)
+        {
+            ArgumentNullException.ThrowIfNull(absolutePath);
+
+            //┌───────────────────────Check header────────────────────────┐
+
+            //└───────────────────────Check header────────────────────────┘
+
+            ColorImage = new(absolutePath);
+            Width = ColorImage.Width;
+            Height = ColorImage.Height;
+
+            if (Width > MaxImageWidth)
+                throw new ArgumentOutOfRangeException(nameof(Width), $"Width is out of range (max {MaxImageWidth})");
+
+            if (Height > MaxImageHeight)
+                throw new ArgumentOutOfRangeException(nameof(Height), $"Height is out of range (max {MaxImageHeight})");
+
+            ExtraPixels = (Width % 32 == 0) ? 0 : 32 - (Width % 32);
+            TotalArea = (Width + ExtraPixels) * Height;
+            FullWidth = Width + ExtraPixels;
+            Size = FullWidth / 8 * Height + 62;
+            Chunks = FullWidth / 8;
+
+            Content = new byte[Size];
+            InitializeHeader();
+            InitializeContent();
+            ProcessSections();
+        }
+
+        [SupportedOSPlatform("windows")]
         public Monochrome(Stream? stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
@@ -608,9 +639,10 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public byte[] Content;
 
-        public Bitmap256(Stream? stream)
+        [SupportedOSPlatform("windows")]
+        public Bitmap256(dynamic source)
         {
-            ColorImage = new(stream);
+            ColorImage = new(source);
 
             //┌───────────────────────Check header────────────────────────┐
 
@@ -698,12 +730,12 @@ namespace CV_2025.CristalVision.Vision
             {
                 for (int left = 0; left < Width - Width % 40; left += 40)
                 {
-                    List<float> brightness = new List<float>(1600);
+                    List<float> brightness = new(1600);
                     for (int y = top; y < top + 40; y++)
                         for (int x = left; x < left + 40; x++)
                             brightness.Add(ColorImage.GetPixel(x, y).GetBrightness());
 
-                    float averange = brightness.Average() - 0.1F;
+                    float average = brightness.Average() - 0.1F;
 
                     for (int i = 0; i < 1600; i++)
                     {
@@ -711,25 +743,25 @@ namespace CV_2025.CristalVision.Vision
                         int y = (i - x) / 40;
                         int index = 1078 + (Height - 1 - y - top) * FullWidth + x + left;
 
-                        if (brightness[i] < averange - 0.115F)
+                        if (brightness[i] < average - 0.115F)
                         {
                             Content[index] = 0;
                             continue;
                         }
 
-                        if (brightness[i] < averange - 0.05F)
+                        if (brightness[i] < average - 0.05F)
                         {
                             Content[index] = 82;
                             continue;
                         }
 
-                        if (brightness[i] < averange)
+                        if (brightness[i] < average)
                         {
                             Content[index] = 164;
                             continue;
                         }
 
-                        if (brightness[i] < averange + 0.015F)
+                        if (brightness[i] < average + 0.015F)
                             Content[index] = 7;
                     }
 
@@ -866,7 +898,56 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public byte[] GetSection(int reference, int width, int height)
         {
-            throw new NotImplementedException();
+            //Sa verific si daca referinta este buna; ex: 62, 80, 10 nu este bine - este in afara imaginii
+
+            if (!Enumerable.Range(1078, Size).Contains(reference))
+                throw new Exception("Reference out of range");
+
+            if (!Enumerable.Range(0, Width + 1).Contains(width) || !Enumerable.Range(0, Height + 1).Contains(height))
+                throw new Exception("Position out of range");
+
+            int sourceIndex, destIndex = 0, chunks = width / 8, size = chunks * height;
+            byte[] section = new byte[size];
+
+            //File.WriteAllBytes("C:\\Users\\user\\source\\repos\\CV-2025\\CV-2025\\wwwroot\\CristalVision\\Characters\\16\\DoriN.bmp", this.Content);
+
+            string breakPoint = null;
+
+            for (int indexH = 0; indexH < height; indexH++)
+            {
+                for (int chunk = 0; chunk < chunks; chunk++)
+                {
+                    //sourceIndex = chunk + reference - indexH * Chunks;
+                    sourceIndex = chunk + reference - indexH;
+                    section[destIndex] = Content[sourceIndex];
+                    destIndex++;
+                }
+            }
+
+            return section;
+        }
+
+        [SupportedOSPlatform("windows")]
+        public byte[] GetSection2(int width, int height)
+        {
+            if (!Enumerable.Range(0, Width + 1).Contains(width) || !Enumerable.Range(0, Height + 1).Contains(height))
+                throw new Exception("Position out of range");
+
+            int destIndex = 0;
+            byte[] section = new byte[width * 50];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (ColorImage.GetPixel(x, y).R == 255)
+                        section[destIndex] = (byte)255;
+
+                    destIndex++;
+                }
+            }
+
+            return section;
         }
 
         /// <summary>
