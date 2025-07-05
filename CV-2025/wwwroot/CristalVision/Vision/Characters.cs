@@ -1,4 +1,5 @@
 using CV_2025.CristalVision.Database;
+using CV_2025.wwwroot.CristalVision.Database;
 using System.Runtime.Versioning;
 
 namespace CV_2025.CristalVision.Vision
@@ -243,6 +244,8 @@ namespace CV_2025.CristalVision.Vision
     [SupportedOSPlatform("windows")]
     public class Characters
     {
+        private readonly Page _page;
+
         /// <summary>
         /// Character shape
         /// </summary>
@@ -271,7 +274,7 @@ namespace CV_2025.CristalVision.Vision
         /// <summary>
         /// Total width including ExtraPixels
         /// </summary>
-        public int Chunks;
+        //public int Chunks;
 
         /// <summary>
         /// Image file as bytes
@@ -283,42 +286,55 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         public int Size;
 
-        public Access database;
+        public CVDatabase database;
 
-        public Characters(Bitmap256 bitmap256)
+        public Characters(Page page)
         {
-            Width = bitmap256.Width;
-            Height = bitmap256.Height;
-            Size = bitmap256.Size;
-            Chunks = (Size - 1078) / Height;
+            _page = page;
+
+            Width = _page.bitmap256.Width;
+            Height = _page.bitmap256.Height;
+            Size = _page.bitmap256.Size;
+            //Chunks = (Size - 1078) / Height;
             ExtraPixels = Width % 4;
             if (ExtraPixels != 0) ExtraPixels = 4 - ExtraPixels;
             FullWidth = Width + ExtraPixels;
 
             Content = new byte[Size];
-            bitmap256.Content.CopyTo(Content, 0);
-
-            database = new Access("cvcharacters.accdb");
+            _page.bitmap256.Content.CopyTo(Content, 0);
+            
+            switch (CVDatabase.type)
+            {
+                case CVDatabase.Type.Acess:
+                    database = new Access();
+                    break;
+                case CVDatabase.Type.MySQL:
+                    database = new MySQL();
+                    break;
+                case CVDatabase.Type.SQLServer:
+                    database = new SQLServer();
+                    break;
+            }
         }
 
         /// <summary>
         /// Get list of characters
         /// </summary>
-        public List<Character> GetText()
+        public List<Character> GetCharacters()
         {
-            int reference = 1078 + Chunks * (Height - 1);
+            int reference = 1078 + FullWidth * (Height - 1);
             List<Character> characters = [];
 
             for (int y = 0; y < Height - 1; y++)
             {
                 for (int x = 0; x < Width - 1; x++)
                 {
-                    int index = reference - y * Chunks + x;
+                    int index = reference - y * FullWidth + x;
 
                     if (Content[index] == 255)
                         continue;
 
-                    ShapeChar = new(index, Chunks, Height);
+                    ShapeChar = new(index, FullWidth, Height);
                     SetIndexes(index);
                     Extract();
                     Character character = new() { Top = ShapeChar.Top, Bottom = ShapeChar.Bottom, Left = ShapeChar.Left, Right = ShapeChar.Right, Width = ShapeChar.Width, Height = ShapeChar.Height };
@@ -343,25 +359,25 @@ namespace CV_2025.CristalVision.Vision
         {
             do
             {
-                if (ShapeChar.Pairs[0] && Content[ShapeChar.Reference - Chunks] == 255 && Content[ShapeChar.Reference - Chunks + 1] != 255)
+                if (ShapeChar.Pairs[0] && Content[ShapeChar.Reference - FullWidth] == 255 && Content[ShapeChar.Reference - FullWidth + 1] != 255)
                 {
                     ShapeChar.StayHorizontalWB();
                     ShapeChar.SetStartSegment();
                 }
 
-                if (ShapeChar.Pairs[0] && Content[ShapeChar.Reference - Chunks] != 255)
+                if (ShapeChar.Pairs[0] && Content[ShapeChar.Reference - FullWidth] != 255)
                 {
                     ShapeChar.HorizontalWBToVerticalWB();
                     ShapeChar.UpdateTop();
                 }
 
-                if (ShapeChar.Pairs[0] && Content[ShapeChar.Reference - Chunks] == 255 && Content[ShapeChar.Reference - Chunks + 1] == 255)
+                if (ShapeChar.Pairs[0] && Content[ShapeChar.Reference - FullWidth] == 255 && Content[ShapeChar.Reference - FullWidth + 1] == 255)
                 {
                     ShapeChar.HorizontalWBToVerticalBW();
                     ShapeChar.UpdateBottom();
                 }
 
-                if (ShapeChar.Pairs[1] && Content[ShapeChar.Reference - 1] == 255 && Content[ShapeChar.Reference - Chunks - 1] != 255)
+                if (ShapeChar.Pairs[1] && Content[ShapeChar.Reference - 1] == 255 && Content[ShapeChar.Reference - FullWidth - 1] != 255)
                     ShapeChar.StayVerticalWB();
 
                 if (ShapeChar.Pairs[1] && Content[ShapeChar.Reference - 1] != 255)
@@ -370,7 +386,7 @@ namespace CV_2025.CristalVision.Vision
                     MarkEndSegment();
                 }
 
-                if (ShapeChar.Pairs[1] && Content[ShapeChar.Reference - 1] == 255 && Content[ShapeChar.Reference - Chunks - 1] == 255)
+                if (ShapeChar.Pairs[1] && Content[ShapeChar.Reference - 1] == 255 && Content[ShapeChar.Reference - FullWidth - 1] == 255)
                 {
                     ShapeChar.VerticalWBToHorizontalWB();
                     ShapeChar.SetStartSegment();
@@ -378,10 +394,10 @@ namespace CV_2025.CristalVision.Vision
                     ShapeChar.UpdateLeft();
                 }
 
-                if (ShapeChar.Pairs[2] && Content[ShapeChar.Reference + 1] == 255 && Content[ShapeChar.Reference + Chunks + 1] != 255)
+                if (ShapeChar.Pairs[2] && Content[ShapeChar.Reference + 1] == 255 && Content[ShapeChar.Reference + FullWidth + 1] != 255)
                     ShapeChar.StayVerticalBW();
 
-                if (ShapeChar.Pairs[2] && Content[ShapeChar.Reference + 1] == 255 && Content[ShapeChar.Reference + Chunks + 1] == 255)
+                if (ShapeChar.Pairs[2] && Content[ShapeChar.Reference + 1] == 255 && Content[ShapeChar.Reference + FullWidth + 1] == 255)
                 {
                     ShapeChar.VerticalBWToHorizontalBW();
                     MarkEndSegment();
@@ -395,19 +411,19 @@ namespace CV_2025.CristalVision.Vision
                     ShapeChar.UpdateLeft();
                 }
 
-                if (ShapeChar.Pairs[3] && Content[ShapeChar.Reference + Chunks] == 255 && Content[ShapeChar.Reference + Chunks - 1] != 255)
+                if (ShapeChar.Pairs[3] && Content[ShapeChar.Reference + FullWidth] == 255 && Content[ShapeChar.Reference + FullWidth - 1] != 255)
                 {
                     ShapeChar.StayHorizontalBW();
                     MarkEndSegment();
                 }
 
-                if (ShapeChar.Pairs[3] && Content[ShapeChar.Reference + Chunks] == 255 && Content[ShapeChar.Reference + Chunks - 1] == 255)
+                if (ShapeChar.Pairs[3] && Content[ShapeChar.Reference + FullWidth] == 255 && Content[ShapeChar.Reference + FullWidth - 1] == 255)
                 {
                     ShapeChar.HorizontalBWToVerticalWB();
                     ShapeChar.UpdateTop();
                 }
 
-                if (ShapeChar.Pairs[3] && Content[ShapeChar.Reference + Chunks] != 255)
+                if (ShapeChar.Pairs[3] && Content[ShapeChar.Reference + FullWidth] != 255)
                 {
                     ShapeChar.HorizontalBWToVerticalBW();
                     ShapeChar.UpdateBottom();
@@ -427,8 +443,8 @@ namespace CV_2025.CristalVision.Vision
         /// </summary>
         private void MarkEndSegment()
         {
-            int x = (ShapeChar.Reference - 1078) % Chunks;
-            int y = (Height - 1) - (ShapeChar.Reference - 1078 - x) / Chunks;
+            int x = (ShapeChar.Reference - 1078) % FullWidth;
+            int y = (Height - 1) - (ShapeChar.Reference - 1078 - x) / FullWidth;
             int index = 1078 + (Height - 1 - y) * FullWidth + x - 1;
 
             Content[index] = 201;
@@ -468,7 +484,7 @@ namespace CV_2025.CristalVision.Vision
         }
 
         /// <summary>
-        /// Resize character to 70px height
+        /// Resize character to 50px height
         /// </summary>
         private void Resize()
         {
