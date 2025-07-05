@@ -17,12 +17,6 @@ var Process = {
         Input.target.src = source.replaceAll('+', '%2b')
         Home.progress.hide();
 
-        Process.ws.send(JSON.stringify(['DisplayUnwnownChar', null]));
-        response = await ServerResponse('DisplayUnwnownChar');
-        const top = response[1];
-        const left = response[2];
-        const width = response[3];
-
         const scale = 1;
         const xAxis = 774 - 175;
         const yAxis = 434;
@@ -36,24 +30,8 @@ var Process = {
         //Prima data sa stie sa alinieze imaginea indiferent de dimensiuni, inclusiv pe dimensiuni egale
         //Apoi sa modific doar latimea, inaltimea a ramana identica pentru fiecare imagine
 
-        //┌───────────────────────Update Database───────────────────────┐
-        const charValue = document.getElementById('Char');
-        charValue.style.visibility = '';
-        charValue.focus();
-
-        const charStyle = document.getElementById('CharStyle');
-        charStyle.style.visibility = '';
-
-        const updateBtn = document.getElementById('UpdateDB');
-        updateBtn.style.visibility = '';
-        updateBtn.onclick = () => {
-            const style = charStyle.checked;
-            const value = charValue.value;
-            Process.ws.send(JSON.stringify(['UpdateDatabase', style, value, width]));
-            charStyle.style.visibility = 'hidden';
-            updateBtn.style.visibility = 'hidden';
-        }
-        //└───────────────────────Update Database───────────────────────┘
+        document.getElementsByTagName('process')[0].style.display = 'none';
+        document.getElementsByTagName('output')[0].style.display = 'inline-flex';
     }
 
     /*ws.onmessage = function (evt) {
