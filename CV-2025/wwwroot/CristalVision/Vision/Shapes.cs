@@ -133,8 +133,6 @@ namespace CV_2025.CristalVision.Vision
 
                     if (length > maxLine)
                     {
-                        //File.WriteAllBytes("C:\\Users\\user\\source\\repos\\OCRScore\\OCRScore\\wwwroot\\Images\\DoriN.bmp", Content);
-
                         maxLine = length;
                         maxIndex = index;
                         //int[] position = GetPosition(index);
