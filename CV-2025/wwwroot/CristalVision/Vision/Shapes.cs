@@ -5,7 +5,6 @@ namespace CV_2025.CristalVision.Vision
 {
     public struct Shape
     {
-
     }
 
     public class Shapes
@@ -52,8 +51,9 @@ namespace CV_2025.CristalVision.Vision
         /// <summary>
         /// Monochrome image as stream
         /// </summary>
-        public Shapes(Monochrome monochrome)
+        public Shapes(Page page)
         {
+            monochrome = page.monochrome;
             /*database = new MySQL("cvdrawings");
             this.monochrome = monochrome;
             Size = monochrome.Size;
