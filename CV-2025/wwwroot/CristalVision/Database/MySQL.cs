@@ -6,16 +6,15 @@ namespace CV_2025.CristalVision.Database
 {
     public class MySQL : CVDatabase
     {
-        public string? tableName;
-        public List<string> tableNames;
         MySqlConnection connection;
 
-        public MySQL(string DBName)
+        public MySQL()
         {
-            string connectionString = "server=localhost;uid=root;database=" + DBName;
-            connection = new(connectionString);
+            CVDatabase.connectionString = "server=localhost;uid=root;database=DBName";
+            connection = new(CVDatabase.connectionString);
             connection.Open();
 
+            string DBName = "";
             string query = "SELECT Table_name as TablesName from information_schema.tables where table_schema = '" + DBName + "'";
             MySqlCommand command = new MySqlCommand(query, connection);
             MySqlDataReader reader = command.ExecuteReader();
