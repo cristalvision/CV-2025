@@ -5,7 +5,7 @@ var Image = {
     async Upload(file) {
 
         const formData = new FormData();
-        formData.append("name", "Pomegranate");
+        formData.append("name", "FormName");
         formData.append("file", file);
 
         let response = await fetch('/Image/Upload', { method: "POST", body: formData });
@@ -31,7 +31,7 @@ var Image = {
         //(this.width > this.height) ? this.target.style.width = '100%' : this.target.style.height = '100%';
         this.target.style.height = '100%';
 
-        this.target.addEventListener('wheel', this.Zoom);
+        this.target.addEventListener('wheel', this.Zoom, false);
 
         this.target.addEventListener('mousedown', event => {
 
