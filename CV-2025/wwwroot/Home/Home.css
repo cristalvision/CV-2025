@@ -7,16 +7,25 @@ body {
 }
 
 ribbon {
-    display: block;
+    display: flex;
     height: 45px;
     background-color: #24406acf;
     border: 2px solid darkblue;
     border-bottom: none;
+    align-items: center;
+    justify-content: center;
+}
+
+ribbon > * {
+    height: inherit;
+}
+
+ribbon output {
+    display: none;
 }
 
 ribbon button {
     height: inherit;
-    margin-left: 47%;
     font-size: large;
     background: #8c8db182;
     color: white;
@@ -24,6 +33,7 @@ ribbon button {
     border-top: none;
     border-bottom: none;
     font-family: math;
+    padding: 0 10px;
 }
 
 #FrameLine {
