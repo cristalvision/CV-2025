@@ -1,3 +1,4 @@
+using CV_2025.CristalVision.Database;
 using static CV_2025.CristalVision.Vision.Page;
 
 namespace CV_2025.CristalVision.Vision
