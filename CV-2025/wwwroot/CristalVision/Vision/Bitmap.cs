@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Drawing;
 using System.Runtime.Versioning;
 using System.Xml;
@@ -908,8 +908,6 @@ namespace CV_2025.CristalVision.Vision
 
             int sourceIndex, destIndex = 0, chunks = width / 8, size = chunks * height;
             byte[] section = new byte[size];
-
-            //File.WriteAllBytes("C:\\Users\\user\\source\\repos\\CV-2025\\CV-2025\\wwwroot\\CristalVision\\Characters\\16\\DoriN.bmp", this.Content);
 
             string breakPoint = null;
 
