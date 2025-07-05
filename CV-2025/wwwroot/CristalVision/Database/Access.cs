@@ -7,19 +7,16 @@ namespace CV_2025.CristalVision.Database
     [SupportedOSPlatform("windows")]
     public class Access : CVDatabase
     {
-        public string? tableName;
-        public List<string> tableNames;
         OleDbConnection connection;
 
-        public Access(string DBName)
+        public Access()
         {
             //The 'Microsoft.ACE.OLEDB.16.0' provider is not registered on the local machine.
             //C:\Users\user>Downloads\accessdatabaseengine_X64.exe /quiet
 
-            string databasePath = Directory.GetCurrentDirectory() + "\\wwwroot\\CristalVision\\Database\\" + DBName;
             connection = new()
             {
-                ConnectionString = "Provider=Microsoft.ACE.OLEDB.16.0;Data Source=" + databasePath
+                ConnectionString = CVDatabase.connectionString
             };
             connection.Open();
 
