@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\CristalVision\Characters\**" />
+    <Content Remove="wwwroot\CristalVision\Characters\**" />
+    <EmbeddedResource Remove="wwwroot\CristalVision\Characters\**" />
+    <None Remove="wwwroot\CristalVision\Characters\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Remove="wwwroot\Home\CoreFunctions.js" />
     <Content Remove="wwwroot\Home\Home.cs" />
     <Content Remove="wwwroot\Home\Home.css" />
@@ -18,6 +25,10 @@
     <Compile Include="wwwroot\CristalVision\Database\Access.cs" />
     <Compile Include="wwwroot\CristalVision\Database\Database.cs" />
     <Compile Include="wwwroot\CristalVision\Database\MySQL.cs" />
+    <Compile Include="wwwroot\CristalVision\Database\SQLServer.cs" />
+    <Compile Include="wwwroot\CristalVision\Output\PDF.cs" />
+    <Compile Include="wwwroot\CristalVision\Output\SVG.cs" />
+    <Compile Include="wwwroot\CristalVision\Output\Word.cs" />
     <Compile Include="wwwroot\CristalVision\Vision\Bitmap.cs" />
     <Compile Include="wwwroot\CristalVision\Vision\Characters.cs" />
     <Compile Include="wwwroot\CristalVision\Vision\Equations.cs" />
@@ -40,6 +51,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Adobe.PDFServicesSDK" Version="4.3.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <PackageReference Include="ExpertPdf.PdfCreator.NetCore" Version="20.1.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.6" />
     <PackageReference Include="MySql.Data" Version="9.3.0" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="System.Data.OleDb" Version="9.0.5" />
