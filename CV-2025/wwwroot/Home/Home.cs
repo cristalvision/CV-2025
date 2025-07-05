@@ -1,5 +1,6 @@
 using CV_2025.wwwroot.Process;
 using Microsoft.AspNetCore.Mvc;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 
@@ -13,11 +14,12 @@ namespace CV_2025.Home
         }
     }
 
+    [SupportedOSPlatform("windows")]
     [Route("api/[controller]")]
     [ApiController]
     public sealed class WebsocketController : ControllerBase
     {
-        Process process = new Process();
+        readonly Process process = new();
         public async Task SendReceiveAsyncData()
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
@@ -55,17 +57,6 @@ namespace CV_2025.Home
             {
                 case "Start":
                     await process.Start(request[1].ToString());
-                    break;
-                case "DisplayUnwnownChar":
-                    await process.DisplayUnwnownChar();
-                    break;
-                case "UpdateDatabase":
-                    JsonElement jsonElement = request[1];
-                    bool style = request[1].GetBoolean();
-                    char value = request[2].ToString()[0];
-                    int DBWidth = request[3].GetInt32();
-
-                    await process.UpdateDatabase(style, value, DBWidth);
                     break;
             }
         }
